@@ -106,13 +106,15 @@ model Section {
 /// The student "registers" by activating their account (setting a password, etc.).
 /// Soft-deleted students are hidden from the UI but preserved for historical data.
 model Student {
-  id          String  @id @default(cuid())
-  firstName   String
-  lastName    String
-  studentCode String  @unique // Institutional ID / code.
-  sectionId   String
-  section     Section @relation(fields: [sectionId], references: [id])
-
+  id                 String             @id @default(cuid())
+  firstName          String
+  lastName           String
+  studentCode        String             @unique // Institutional ID / code.
+  institutionalEmail String?            @unique
+  supabaseUserId     String?            @unique
+  sectionId          String
+  section            Section            @relation(fields: [sectionId], references: [id])
+  passwordHash       String?
   // --- Registration / Activation ---
   registrationStatus RegistrationStatus @default(PENDING)
   /// Populated when the student activates their account.
