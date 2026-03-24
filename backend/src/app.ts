@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { corsConfig } from "./config/cors.config";
+import apiRouter from "./routes/index";
 
 const app = express();
 
@@ -15,6 +16,6 @@ app.get("/health", (_req, res) => {
 });
 
 // Routes
-// app.use("/api", apiRouter);
+app.use("/api", apiRouter);
 
 export default app;
