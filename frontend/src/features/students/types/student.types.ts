@@ -1,0 +1,2 @@
+// student.types implementation
+export {};

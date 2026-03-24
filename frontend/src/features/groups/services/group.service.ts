@@ -1,0 +1,2 @@
+// group.service implementation
+export {};
