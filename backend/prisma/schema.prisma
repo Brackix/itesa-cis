@@ -1,15 +1,281 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// =============================================================================
+// CIS SCHOOL FAIR — Prisma Schema
+// Database: PostgreSQL
+// -----------------------------------------------------------------------------
+// Design philosophy:
+//   - "Fair" is the top-level aggregate root, enabling multiple fairs over time.
+//   - Students are pre-loaded (seed data); registration is an activation step,
+//     not account creation from scratch.
+//   - Soft-deletion is applied to entities that may be referenced historically
+//     (Student, Group, Criterion) so audit trails remain intact.
+//   - Enums are used wherever a finite, well-known set of values exists.
+//   - Composite unique constraints enforce business rules at the DB level.
+//   - Indexes are placed on every FK and on columns used in frequent filters
+//     (week, status, groupId).
+// =============================================================================
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------------------------
+
+/// Registration / activation state of a student account.
+enum RegistrationStatus {
+  PENDING // Pre-loaded; has not yet activated their account.
+  ACTIVE // Has completed registration (set credentials, etc.).
+  SUSPENDED // Temporarily blocked by an admin.
+}
+
+/// Lifecycle state of a group evaluation against a single criterion.
+enum EvaluationStatus {
+  PENDING // Not yet acted on by the group.
+  SUBMITTED // Group has submitted evidence / marked as done.
+  APPROVED // Teacher has approved the submission.
+  REJECTED // Teacher has rejected the submission (requires revision).
+  WAIVED // Criterion was waived for this group by a teacher.
+}
+
+/// Role of a platform user — extensible for future roles (e.g., ADMIN, JUDGE).
+enum UserRole {
+  TEACHER
+  ADMIN
+}
+
+// ---------------------------------------------------------------------------
+// FAIR  (top-level aggregate — enables multi-fair support in the future)
+// ---------------------------------------------------------------------------
+
+/// A school fair event. All groups, criteria and evaluations belong to a fair.
+/// This is the primary isolation boundary for multi-year / multi-event support.
+model Fair {
+  id          String    @id @default(cuid())
+  name        String // e.g. "CIS Fair 2025"
+  description String?
+  year        Int // Denormalised for fast year-based queries.
+  startDate   DateTime?
+  endDate     DateTime?
+  isActive    Boolean   @default(true) // Only one fair is "active" at a time.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sections Section[]
+  groups   Group[]
+  criteria Criterion[]
+
+  @@index([year])
+  @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// SECTION  (organisational — A, B, C …)
+// ---------------------------------------------------------------------------
+
+/// A classroom section within a given fair/grade.
+/// Sections are scoped to a Fair because section names may repeat across years.
+model Section {
+  id     String @id @default(cuid())
+  name   String // e.g. "A", "B", "6to-E"
+  fairId String
+  fair   Fair   @relation(fields: [fairId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students Student[]
+
+  /// A section name must be unique within a fair.
+  @@unique([fairId, name])
+  @@index([fairId])
+}
+
+// ---------------------------------------------------------------------------
+// STUDENT  (pre-loaded; activation via registration)
+// ---------------------------------------------------------------------------
+
+/// A student record pre-loaded by admins.
+/// The student "registers" by activating their account (setting a password, etc.).
+/// Soft-deleted students are hidden from the UI but preserved for historical data.
+model Student {
+  id          String  @id @default(cuid())
+  firstName   String
+  lastName    String
+  studentCode String  @unique // Institutional ID / code.
+  sectionId   String
+  section     Section @relation(fields: [sectionId], references: [id])
+
+  // --- Registration / Activation ---
+  registrationStatus RegistrationStatus @default(PENDING)
+  /// Populated when the student activates their account.
+  userId             String?            @unique
+  user               User?              @relation(fields: [userId], references: [id])
+  /// Timestamp of the first successful login (bonus requirement).
+  firstLoginAt       DateTime?
+  registeredAt       DateTime? // When they completed activation.
+
+  // --- Group membership ---
+  /// A student belongs to at most one group per fair (enforced via Group relation).
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id])
+
+  // --- Soft deletion ---
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+  @@index([groupId])
+  @@index([registrationStatus])
+  @@index([deletedAt])
+}
+
+// ---------------------------------------------------------------------------
+// USER  (authentication identity — separate from Student/Teacher records)
+// ---------------------------------------------------------------------------
+
+/// Platform user account. Decoupled from domain entities (Student, Teacher)
+/// so that authentication concerns don't pollute domain models.
+/// A User is linked 1-to-1 with either a Student or a Teacher, never both.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(TEACHER)
+
+  /// Tracks whether this user has ever logged in (bonus requirement).
+  lastLoginAt DateTime?
+  loginCount  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations — exactly one of these will be populated per user.
+  student Student?
+  teacher Teacher?
+}
+
+// ---------------------------------------------------------------------------
+// TEACHER
+// ---------------------------------------------------------------------------
+
+/// A teacher who can create criteria and evaluate groups.
+model Teacher {
+  id        String @id @default(cuid())
+  firstName String
+  lastName  String
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  criteria    Criterion[]
+  evaluations GroupEvaluation[]
+
+  @@index([deletedAt])
+}
+
+// ---------------------------------------------------------------------------
+// GROUP
+// ---------------------------------------------------------------------------
+
+/// A project group composed of ~7 students, potentially from different sections.
+/// Groups are scoped to a Fair.
+model Group {
+  id     String @id @default(cuid())
+  name   String // e.g. "Group 1", "Los Innovadores"
+  fairId String
+  fair   Fair   @relation(fields: [fairId], references: [id])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  students    Student[]
+  evaluations GroupEvaluation[]
+
+  /// Group names must be unique within a fair.
+  @@unique([fairId, name])
+  @@index([fairId])
+  @@index([deletedAt])
+}
+
+// ---------------------------------------------------------------------------
+// CRITERION  (weekly evaluation task defined by a teacher)
+// ---------------------------------------------------------------------------
+
+/// A single evaluation task or requirement defined by a teacher for a given week.
+/// Criteria are scoped to a Fair so they can be reused as templates across years
+/// if desired, but remain isolated per event.
+model Criterion {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  weekNumber  Int // e.g. 1, 2, 3 … N
+  deadline    DateTime? // Optional hard deadline for this criterion.
+  fairId      String
+  fair        Fair      @relation(fields: [fairId], references: [id])
+  createdById String
+  createdBy   Teacher   @relation(fields: [createdById], references: [id])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  evaluations GroupEvaluation[]
+
+  @@index([fairId])
+  @@index([weekNumber])
+  @@index([fairId, weekNumber]) // Common query: "all criteria for week N in fair X"
+  @@index([deletedAt])
+}
+
+// ---------------------------------------------------------------------------
+// GROUP EVALUATION  (junction: group × criterion — the core tracking table)
+// ---------------------------------------------------------------------------
+
+/// Tracks whether a group has fulfilled a given criterion.
+/// One record per (group, criterion) pair — enforced by the unique constraint.
+/// This is the central tracking table for the fair's evaluation workflow.
+model GroupEvaluation {
+  id          String    @id @default(cuid())
+  groupId     String
+  group       Group     @relation(fields: [groupId], references: [id])
+  criterionId String
+  criterion   Criterion @relation(fields: [criterionId], references: [id])
+
+  status   EvaluationStatus @default(PENDING)
+  feedback String? // Optional teacher feedback / rejection reason.
+
+  /// The teacher who last updated this evaluation record.
+  reviewedById String?
+  reviewedBy   Teacher?  @relation(fields: [reviewedById], references: [id])
+  reviewedAt   DateTime? // Timestamp of the last status change.
+
+  /// Evidence URL or note submitted by the group (e.g. link to a document).
+  submissionNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One evaluation record per group-criterion pair.
+  @@unique([groupId, criterionId])
+  @@index([groupId])
+  @@index([criterionId])
+  @@index([status])
+  @@index([reviewedById])
 }
