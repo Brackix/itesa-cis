@@ -1,0 +1,8 @@
+# Server
+PORT=3000
+
+# Database (Prisma)
+DATABASE_URL="postgresql://user:password@localhost:5432/itesa_cis?schema=public"
+
+# CORS (comma-separated origins)
+CORS_ORIGINS="http://localhost:3000,http://localhost:5173"
