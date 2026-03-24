@@ -1,8 +1,8 @@
-import { User } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import prisma from "../../../prisma/prisma.instance";
 
 export class UserService {
-    async create(data: User) {
+    async create(data: Prisma.UserCreateInput) {
         return await prisma.user.create({ data });
     }
 
@@ -14,7 +14,7 @@ export class UserService {
         return await prisma.user.findUnique({ where: { id } });
     }
 
-    async update(id: string, data: User) {
+    async update(id: string, data: Prisma.UserUpdateInput) {
         return await prisma.user.update({ where: { id }, data });
     }
 
