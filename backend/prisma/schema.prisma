@@ -109,7 +109,7 @@ model Student {
   id                 String             @id @default(cuid())
   firstName          String
   lastName           String
-  studentCode        String             @unique // Institutional ID / code.
+  studentCode        String?            @unique // Institutional ID / code. (Populated on activation)
   institutionalEmail String?            @unique
   supabaseUserId     String?            @unique
   sectionId          String
