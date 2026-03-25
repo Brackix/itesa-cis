@@ -31,7 +31,6 @@ type VerifySignupInput = {
     firstName: unknown;
     lastName: unknown;
     sectionId: unknown;
-    studentCode: unknown;
 };
 
 type StudentSummary = {
@@ -136,7 +135,19 @@ export class StudentAuthService {
         const firstName = ensureName(input.firstName, "firstName");
         const lastName = ensureName(input.lastName, "lastName");
         const sectionId = ensureSectionId(input.sectionId);
-        const studentCode = normalizeStudentCode(input.studentCode);
+
+        // Extract studentCode from joined email format (e.g. yirbermanon0110@itesa.edu.do -> 2023-0110)
+        const localPart = email.split('@')[0];
+
+        // Grab the last 4 characters from the local part
+        const extractedDigits = localPart.slice(-4);
+        if (!/^\d{4}$/.test(extractedDigits)) {
+            throw new StudentAuthError("Formato de correo inválido. Se esperaban 4 dígitos al final del usuario (ej. nombre0110@dominio).", 400, "INVALID_EMAIL_FORMAT");
+        }
+
+        // Prefix with the static 2023- enrollment year
+        const extractedStudentCode = `2023-${extractedDigits}`;
+
         const safeIp = normalizeIp(ip);
 
         this.checkRateLimit("verify-signup", `${safeIp}:${email}`, VERIFY_RATE_LIMIT);
@@ -162,7 +173,7 @@ export class StudentAuthService {
                     where: { institutionalEmail: email },
                 });
 
-                if (existingActive && existingActive.registrationStatus === "ACTIVE" && existingActive.studentCode === studentCode) {
+                if (existingActive && existingActive.registrationStatus === "ACTIVE") {
                     const loginResult = await this.login(email, password, ip);
                     return {
                         created: false,
@@ -191,76 +202,39 @@ export class StudentAuthService {
         let upsertResult: { created: boolean; student: Student };
         try {
             upsertResult = await prisma.$transaction(async (tx) => {
+                // Determine if a student already secured this email intentionally
                 const existingByEmail = await tx.student.findUnique({
                     where: { institutionalEmail: email },
                 });
-
-                const existingByCode = await tx.student.findUnique({
-                    where: { studentCode },
-                });
-
-                if (existingByCode && existingByCode.institutionalEmail && existingByCode.institutionalEmail !== email) {
-                    throw new StudentAuthError("studentCode ya está vinculado a otro correo", 409, "STUDENT_CODE_CONFLICT");
-                }
 
                 if (existingByEmail) {
                     if (existingByEmail.registrationStatus === "SUSPENDED") {
                         throw new StudentAuthError("La cuenta está suspendida", 401, "ACCOUNT_SUSPENDED");
                     }
-
-                    if (existingByCode && existingByCode.id !== existingByEmail.id) {
-                        throw new StudentAuthError("studentCode ya está en uso", 409, "STUDENT_CODE_CONFLICT");
+                    if (existingByEmail.registrationStatus === "ACTIVE") {
+                        throw new StudentAuthError("Este estudiante ya ha activado su cuenta.", 409, "ALREADY_ACTIVE");
                     }
-
-                    const updated = await tx.student.update({
-                        where: { id: existingByEmail.id },
-                        data: {
-                            firstName,
-                            lastName,
-                            sectionId,
-                            studentCode,
-                            supabaseUserId: verifyResult.user.id,
-                            registrationStatus: "ACTIVE",
-                            registeredAt: existingByEmail.registeredAt ?? now,
-                        },
-                    });
-
-                    return {
-                        created: false,
-                        student: updated,
-                    };
                 }
 
-                if (existingByCode) {
-                    if (existingByCode.registrationStatus === "SUSPENDED") {
-                        throw new StudentAuthError("La cuenta está suspendida", 401, "ACCOUNT_SUSPENDED");
+                // Identify the true PENDING pre-loaded student using Corroboration inputs
+                const pendingStudent = await tx.student.findFirst({
+                    where: {
+                        firstName: { equals: firstName, mode: "insensitive" },
+                        lastName: { equals: lastName, mode: "insensitive" },
+                        sectionId: sectionId,
+                        registrationStatus: "PENDING"
                     }
+                });
 
-                    const claimed = await tx.student.update({
-                        where: { id: existingByCode.id },
-                        data: {
-                            firstName,
-                            lastName,
-                            sectionId,
-                            institutionalEmail: email,
-                            supabaseUserId: verifyResult.user.id,
-                            registrationStatus: "ACTIVE",
-                            registeredAt: now,
-                        },
-                    });
-
-                    return {
-                        created: true,
-                        student: claimed,
-                    };
+                if (!pendingStudent) {
+                    throw new StudentAuthError("No se encontró ningún estudiante pendiente de activación con este nombre y sección en la base de datos.", 404, "STUDENT_NOT_FOUND");
                 }
 
-                const created = await tx.student.create({
+                // Safely update the preloaded admin row
+                const activatedStudent = await tx.student.update({
+                    where: { id: pendingStudent.id },
                     data: {
-                        firstName,
-                        lastName,
-                        studentCode,
-                        sectionId,
+                        studentCode: extractedStudentCode,
                         institutionalEmail: email,
                         supabaseUserId: verifyResult.user.id,
                         registrationStatus: "ACTIVE",
@@ -269,8 +243,8 @@ export class StudentAuthService {
                 });
 
                 return {
-                    created: true,
-                    student: created,
+                    created: false,
+                    student: activatedStudent,
                 };
             });
         } catch (error) {
@@ -279,7 +253,7 @@ export class StudentAuthService {
             }
 
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-                throw new StudentAuthError("Conflicto de datos durante el registro", 409, "STUDENT_CONFLICT");
+                throw new StudentAuthError("Conflicto de unicidad en la base de datos (quizás la matrícula ya estaba en uso).", 409, "STUDENT_CONFLICT");
             }
 
             throw this.normalizeError(error);
