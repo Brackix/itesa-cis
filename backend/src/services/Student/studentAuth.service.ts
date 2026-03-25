@@ -35,7 +35,7 @@ type VerifySignupInput = {
 
 type StudentSummary = {
     id: string;
-    studentCode: string;
+    studentCode: string | null;
     firstName: string;
     lastName: string;
     institutionalEmail: string | null;
