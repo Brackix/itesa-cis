@@ -64,5 +64,4 @@ npm run dev
 
 ## Autor
 - **Brackix** - *Desarrollo Inicial*
-- EN brackix se ve_
-si se ve
+
