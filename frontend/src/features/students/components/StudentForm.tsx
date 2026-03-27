@@ -25,9 +25,9 @@ export const StudentForm = ({ initialData, onHide }: StudentFormProps) => {
         watch,
     } = useForm<CreateStudentInput>({
         defaultValues: initialData || {
-            listNumber: 0,
+            list_number: 0,
             name: '',
-            lastname: '',
+            last_name: '',
             section: '',
         }
     });
@@ -44,14 +44,14 @@ export const StudentForm = ({ initialData, onHide }: StudentFormProps) => {
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="p-fluid">
             <div className="field">
-                <label htmlFor="listNumber" className="font-bold">No. Lista</label>
+                <label htmlFor="list_number" className="font-bold">No. Lista</label>
                 <InputNumber 
-                    id="listNumber" 
-                    value={watch('listNumber')} 
-                    onValueChange={(e) => setValue('listNumber', e.value || 0)} 
-                    className={classNames({ 'p-invalid': errors.listNumber })}
+                    id="list_number" 
+                    value={watch('list_number')} 
+                    onValueChange={(e) => setValue('list_number', e.value || 0)} 
+                    className={classNames({ 'p-invalid': errors.list_number })}
                 />
-                {errors.listNumber && <small className="p-error">El número de lista es requerido.</small>}
+                {errors.list_number && <small className="p-error">El número de lista es requerido.</small>}
             </div>
 
             <div className="field">
@@ -66,13 +66,13 @@ export const StudentForm = ({ initialData, onHide }: StudentFormProps) => {
             </div>
 
             <div className="field">
-                <label htmlFor="lastname" className="font-bold">Apellido</label>
+                <label htmlFor="last_name" className="font-bold">Apellido</label>
                 <InputText 
-                    id="lastname" 
-                    {...register('lastname', { required: true })} 
-                    className={classNames({ 'p-invalid': errors.lastname })} 
+                    id="last_name" 
+                    {...register('last_name', { required: true })} 
+                    className={classNames({ 'p-invalid': errors.last_name })} 
                 />
-                {errors.lastname && <small className="p-error">El apellido es requerido.</small>}
+                {errors.last_name && <small className="p-error">El apellido es requerido.</small>}
             </div>
 
             <div className="field">

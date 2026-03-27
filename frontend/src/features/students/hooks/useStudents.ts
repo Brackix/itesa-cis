@@ -12,8 +12,8 @@ interface StudentStore {
 }
 
 const mockStudents: Student[] = [
-    { id: '1', listNumber: 1, name: 'Ana', lastname: 'García', section: 'A', in_group: false },
-    { id: '2', listNumber: 2, name: 'Carlos', lastname: 'López', section: 'B', in_group: true },
+    { id: '1', list_number: 1, name: 'Ana', last_name: 'García', section: 'A', in_group: false },
+    { id: '2', list_number: 2, name: 'Carlos', last_name: 'López', section: 'B', in_group: true },
 ];
 
 export const useStudentStore = create<StudentStore>((set) => ({

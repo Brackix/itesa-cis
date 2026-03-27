@@ -82,21 +82,22 @@ export const StudentTable = () => {
             <Toast ref={toast} />
             <Toolbar className="mb-4" left={leftToolbarTemplate}></Toolbar>
 
-            <DataTable 
-                value={students} 
+            <DataTable
+                value={students}
                 loading={loading}
-                paginator 
-                rows={10} 
+                paginator
+                rows={10}
                 className="datatable-responsive"
                 emptyMessage="No se encontraron estudiantes."
             >
-                <Column field="listNumber" header="No. Lista" sortable></Column>
+                <Column field="list_number" header="No. Lista" sortable></Column>
                 <Column field="name" header="Nombre" sortable></Column>
-                <Column field="lastname" header="Apellido" sortable></Column>
+                <Column field="last_name" header="Apellido" sortable></Column>
                 <Column field="section" header="Sección" sortable></Column>
-                <Column 
-                    field="in_group" 
-                    header="En Grupo" 
+
+                <Column
+                    field="in_group"
+                    header="En Grupo"
                     body={(rowData: Student) => (
                         <span className={`customer-badge status-${rowData.in_group ? 'qualified' : 'unqualified'}`}>
                             {rowData.in_group ? 'Sí' : 'No'}
@@ -107,35 +108,35 @@ export const StudentTable = () => {
                 <Column body={actionBodyTemplate} exportable={false} style={{ minWidth: '12rem' }}></Column>
             </DataTable>
 
-            <Dialog 
-                visible={studentDialog} 
-                style={{ width: '32rem' }} 
-                breakpoints={{ '960px': '75vw', '641px': '90vw' }} 
-                header={selectedStudent ? "Editar Estudiante" : "Nuevo Estudiante"} 
-                modal 
-                className="p-fluid" 
+            <Dialog
+                visible={studentDialog}
+                style={{ width: '32rem' }}
+                breakpoints={{ '960px': '75vw', '641px': '90vw' }}
+                header={selectedStudent ? "Editar Estudiante" : "Nuevo Estudiante"}
+                modal
+                className="p-fluid"
                 onHide={hideStudentDialog}
             >
-                <StudentForm 
-                    initialData={selectedStudent} 
+                <StudentForm
+                    initialData={selectedStudent}
                     onHide={hideStudentDialog}
                 />
             </Dialog>
 
-            <Dialog 
-                visible={deleteStudentDialog} 
-                style={{ width: '32rem' }} 
-                breakpoints={{ '960px': '75vw', '641px': '90vw' }} 
-                header="Confirmar" 
-                modal 
-                footer={deleteStudentDialogFooter} 
+            <Dialog
+                visible={deleteStudentDialog}
+                style={{ width: '32rem' }}
+                breakpoints={{ '960px': '75vw', '641px': '90vw' }}
+                header="Confirmar"
+                modal
+                footer={deleteStudentDialogFooter}
                 onHide={hideDeleteStudentDialog}
             >
                 <div className="confirmation-content">
                     <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                     {selectedStudent && (
                         <span>
-                            ¿Estás seguro de que quieres eliminar a <b>{selectedStudent.name} {selectedStudent.lastname}</b>?
+                            ¿Estás seguro de que quieres eliminar a <b>{selectedStudent.name} {selectedStudent.last_name}</b>?
                         </span>
                     )}
                 </div>

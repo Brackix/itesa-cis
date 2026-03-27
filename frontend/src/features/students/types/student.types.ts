@@ -1,8 +1,8 @@
 export interface Student {
     id: string;
-    listNumber: number;
+    list_number: number;
     name: string;
-    lastname: string;
+    last_name: string;
     section: string;
     in_group: boolean;
     image_url?: string;

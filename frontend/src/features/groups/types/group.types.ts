@@ -1,9 +1,13 @@
 export interface Group {
     id: string;
     group_name: string;
-    project_name: string;
-    project_desc: string;
-    student_id: string; // References the leader or a member?
+}
+
+export interface GroupStudent {
+    id: string;
+    group_id: string;
+    student_id: string;
+    is_coordinator: boolean;
 }
 
 export type CreateGroupInput = Omit<Group, 'id'>;

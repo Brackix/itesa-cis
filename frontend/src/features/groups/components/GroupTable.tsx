@@ -91,14 +91,6 @@ export const GroupTable = () => {
                 emptyMessage="No se encontraron grupos."
             >
                 <Column field="group_name" header="Nombre del Grupo" sortable></Column>
-                <Column field="project_name" header="Nombre del Proyecto" sortable></Column>
-                <Column 
-                    header="ID Líder" 
-                    field="student_id" 
-                    body={(rowData: Group) => (
-                        <span className="text-secondary">{rowData.student_id ? rowData.student_id : 'Sin líder'}</span>
-                    )}
-                ></Column>
                 <Column body={actionBodyTemplate} exportable={false} style={{ minWidth: '12rem' }}></Column>
             </DataTable>
 

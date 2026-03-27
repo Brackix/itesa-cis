@@ -12,7 +12,7 @@ interface GroupStore {
 }
 
 const mockGroups: Group[] = [
-    { id: '1', group_name: 'Grupo A', project_name: 'ITESA CIS Dashboard', project_desc: 'Desarrollo de un dashboard con PrimeReact y Next.js', student_id: '1' },
+    { id: '1', group_name: 'Grupo A' },
 ];
 
 export const useGroupStore = create<GroupStore>((set) => ({

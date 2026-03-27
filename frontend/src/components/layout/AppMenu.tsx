@@ -38,9 +38,24 @@ const AppMenu = () => {
             ]
         },
         {
+            label: 'Proyectos',
+            icon: 'pi pi-fw pi-briefcase',
+            items: [
+                { label: 'Listado', icon: 'pi pi-fw pi-list', to: '/projects' },
+            ]
+        },
+        {
+            label: 'Evaluaciones',
+            icon: 'pi pi-fw pi-check-square',
+            items: [
+                { label: 'Listado', icon: 'pi pi-fw pi-list', to: '/evaluations' },
+            ]
+        },
+        {
             label: 'Sistema',
             icon: 'pi pi-fw pi-cog',
             items: [
+                { label: 'Usuarios', icon: 'pi pi-fw pi-user', to: '/users' },
                 { label: 'Configuración', icon: 'pi pi-fw pi-cog', to: '/settings' },
             ]
         }
