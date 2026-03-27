@@ -65,4 +65,4 @@ npm run dev
 ## Autor
 - **Brackix** - *Desarrollo Inicial*
 - EN brackix se ve_
-no veo mi commit
+si se ve
