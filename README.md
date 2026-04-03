@@ -64,5 +64,5 @@ npm run dev
 
 ## Autor
 - **Brackix** - *Desarrollo Inicial*
-- Brackix pa la racha diaria del gihu
+- Brackix the best
 
