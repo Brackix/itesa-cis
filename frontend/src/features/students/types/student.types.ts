@@ -10,3 +10,18 @@ export interface Student {
 }
 
 export type CreateStudentInput = Omit<Student, 'id' | 'in_group'>;
+
+export interface StudentDetails {
+    student: Student;
+    group: {
+        id: string;
+        group_name: string;
+    } | null;
+    role: "coordinator" | "member" | null;
+    project: {
+        id: string;
+        name: string;
+        description: string | null;
+    } | null;
+    progress: number;
+}
