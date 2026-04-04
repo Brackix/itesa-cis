@@ -1,0 +1,191 @@
+import { Router } from "express";
+import { StudentController } from "../controllers/students.controller";
+
+const router = Router();
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Student:
+ *       type: object
+ *       required:
+ *         - list_number
+ *         - name
+ *         - last_name
+ *         - section
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Auto-generated UUID of the student
+ *         list_number:
+ *           type: integer
+ *           description: Roll/List number
+ *         name:
+ *           type: string
+ *         last_name:
+ *           type: string
+ *         section:
+ *           type: string
+ *           description: Section letter (e.g. A, B)
+ *         image_url:
+ *           type: string
+ *         alt_text:
+ *           type: string
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: Students
+ *   description: Student management endpoints
+ */
+
+/**
+ * @swagger
+ * /students:
+ *   get:
+ *     summary: Returns the list of all students
+ *     tags: [Students]
+ *     parameters:
+ *       - in: query
+ *         name: section
+ *         schema:
+ *           type: string
+ *         description: Filter by section
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name or last_name
+ *     responses:
+ *       200:
+ *         description: The list of students
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Student'
+ */
+router.get("/", StudentController.getStudents);
+
+/**
+ * @swagger
+ * /students:
+ *   post:
+ *     summary: Create a new student
+ *     tags: [Students]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Student'
+ *     responses:
+ *       201:
+ *         description: The student was successfully created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Student'
+ *       400:
+ *         description: Missing required fields
+ */
+router.post("/", StudentController.createStudent);
+
+/**
+ * @swagger
+ * /students/{id}:
+ *   get:
+ *     summary: Get the student by id
+ *     tags: [Students]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The student id
+ *     responses:
+ *       200:
+ *         description: The student description by id
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Student'
+ *       404:
+ *         description: The student was not found
+ */
+router.get("/:id", StudentController.getStudentById);
+
+/**
+ * @swagger
+ * /students/{id}:
+ *   put:
+ *     summary: Update the student by the id
+ *     tags: [Students]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The student id
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Student'
+ *     responses:
+ *       200:
+ *         description: The student was updated
+ *       404:
+ *         description: The student was not found
+ */
+router.put("/:id", StudentController.updateStudent);
+
+/**
+ * @swagger
+ * /students/{id}:
+ *   delete:
+ *     summary: Remove the student by id
+ *     tags: [Students]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The student id
+ *     responses:
+ *       204:
+ *         description: The student was deleted
+ *       404:
+ *         description: The student was not found
+ */
+router.delete("/:id", StudentController.deleteStudent);
+
+/**
+ * @swagger
+ * /students/{id}/details:
+ *   get:
+ *     summary: Get advanced comprehensive dashboard details of a student
+ *     tags: [Students]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The student id
+ *     responses:
+ *       200:
+ *         description: Composite object containing group, role, project, and progress
+ *       404:
+ *         description: The student was not found
+ */
+router.get("/:id/details", StudentController.getStudentDetails);
+
+export default router;

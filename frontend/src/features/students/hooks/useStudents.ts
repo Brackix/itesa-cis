@@ -5,42 +5,58 @@ interface StudentStore {
     students: Student[];
     loading: boolean;
     error: string | null;
-    fetchStudents: () => void;
+    fetchStudents: (filters?: { section?: string; search?: string }) => void;
     addStudent: (data: CreateStudentInput) => void;
     updateStudent: (student: Student) => void;
     deleteStudent: (id: string) => void;
 }
 
-const mockStudents: Student[] = [
-    { id: '1', list_number: 1, name: 'Ana', last_name: 'García', section: 'A', in_group: false },
-    { id: '2', list_number: 2, name: 'Carlos', last_name: 'López', section: 'B', in_group: true },
-];
+import { StudentService } from '../services/student.service';
 
 export const useStudentStore = create<StudentStore>((set) => ({
-    students: mockStudents,
+    students: [],
     loading: false,
     error: null,
-    fetchStudents: () => {
-        // Mock fetch
-        set({ loading: true });
-        setTimeout(() => set({ students: mockStudents, loading: false }), 500);
+    fetchStudents: async (filters) => {
+        set({ loading: true, error: null });
+        try {
+            const students = await StudentService.getStudents(filters);
+            set({ students, loading: false });
+        } catch (error: unknown) {
+            set({ error: error instanceof Error ? error.message : 'Error ocurred', loading: false });
+        }
     },
-    addStudent: (data) => {
-        const newStudent: Student = {
-            ...data,
-            id: Math.random().toString(36).substr(2, 9),
-            in_group: false
-        };
-        set((state) => ({ students: [...state.students, newStudent] }));
+    addStudent: async (data) => {
+        set({ loading: true, error: null });
+        try {
+            const newStudent = await StudentService.createStudent(data);
+            set((state) => ({ students: [...state.students, newStudent], loading: false }));
+        } catch (error: unknown) {
+            set({ error: error instanceof Error ? error.message : 'Error ocurred', loading: false });
+        }
     },
-    updateStudent: (student) => {
-        set((state) => ({
-            students: state.students.map((s) => (s.id === student.id ? student : s))
-        }));
+    updateStudent: async (student) => {
+        set({ loading: true, error: null });
+        try {
+            const updated = await StudentService.updateStudent(student.id, student);
+            set((state) => ({
+                students: state.students.map((s) => (s.id === student.id ? updated : s)),
+                loading: false
+            }));
+        } catch (error: unknown) {
+            set({ error: error instanceof Error ? error.message : 'Error ocurred', loading: false });
+        }
     },
-    deleteStudent: (id) => {
-        set((state) => ({
-            students: state.students.filter((s) => s.id !== id)
-        }));
+    deleteStudent: async (id) => {
+        set({ loading: true, error: null });
+        try {
+            await StudentService.deleteStudent(id);
+            set((state) => ({
+                students: state.students.filter((s) => s.id !== id),
+                loading: false
+            }));
+        } catch (error: unknown) {
+            set({ error: error instanceof Error ? error.message : 'Error ocurred', loading: false });
+        }
     }
 }));
