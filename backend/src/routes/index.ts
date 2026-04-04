@@ -13,6 +13,7 @@ function loadRoutes(dirPath: string, prefix = "") {
             loadRoutes(fullPath, `${prefix}/${file}`);
         } else if ((file.endsWith(".route.ts") || file.endsWith(".route.js")) && file !== "index.ts") {
             const routeName = file.split(".")[0];
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
             const route = require(fullPath).default;
             apiRouter.use(`${prefix}/${routeName}`, route);
         }
