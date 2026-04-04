@@ -20,7 +20,7 @@ model groups {
 model groups_students {
   id             String   @id @db.Uuid
   group_id       String   @db.Uuid
-  student_id     String   @db.Uuid
+  student_id     String   @unique @db.Uuid
   is_coordinator Boolean? @default(false)
   groups         groups   @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   students       students @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

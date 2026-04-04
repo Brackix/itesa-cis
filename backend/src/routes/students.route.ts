@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { StudentController } from "../controllers/students.controller";
+import { authenticate } from "../middlewares/auth.middleware"
 
 const router = Router();
+
+router.use(authenticate);
 
 /**
  * @swagger
