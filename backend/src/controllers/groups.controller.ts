@@ -58,6 +58,22 @@ export class GroupsController {
     // STUDENTS
     // -------------------------
 
+    static findStudentsInGroups = async (req: Request, res: Response) => {
+        const data = await groupsService.findStudentsInGroups();
+        return res.json({ success: true, data });
+    };
+
+    static getStudentsFromGroup = async (req: Request, res: Response) => {
+        const { groupId } = req.params;
+
+        if (!groupId) throw new AppError("NO_GROUP_SPECIFIED", 400);
+
+        const result = await groupsService.getStudentsFromGroup(groupId as string);
+
+        return res.json(result);
+    };
+
+
     static addStudents = async (req: Request, res: Response) => {
         const { id, replaceCoordinator } = req.params;
         const { students } = req.body;

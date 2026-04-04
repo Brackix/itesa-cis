@@ -29,6 +29,48 @@ export class groupsService {
     }
 
 
+    static async findStudentsInGroups() {
+        const groups = await prisma.groups.findMany({
+            include: {
+                groups_students: {
+                    include: {
+                        students: true
+                    }
+                }
+            }
+        });
+
+        return groups.map(group => ({
+            id: group.id,
+            name: group.group_name,
+            students: group.groups_students.map(gs => ({
+                id: gs.students.id,
+                list_number: gs.students.list_number,
+                name: gs.students.name,
+                last_name: gs.students.last_name,
+                section: gs.students.section,
+                image_url: gs.students.image_url,
+                alt_text: gs.students.alt_text,
+                is_coordinator: gs.is_coordinator,
+            }))
+        }));
+    }
+
+
+    static async getStudentsFromGroup(groupId: string) {
+        const group = await prisma.groups.findUnique({ where: { id: groupId } });
+        if (!group) throw new AppError('GROUP_NOT_FOUND', 404);
+
+        const students = await prisma.groups_students.findMany({
+            where: { group_id: groupId },
+            include: {
+                students: true
+            }
+        });
+
+        return students;
+    }
+
     //Group students
     static async addStudentsToGroup(groupId: string, students: StudentInput[], replaceCoordinator: boolean) {
 

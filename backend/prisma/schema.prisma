@@ -64,15 +64,13 @@ model students {
   list_number     Int
   name            String            @db.VarChar
   last_name       String            @db.VarChar
-  section         String            @db.Char(1)
-  sections        sections          @relation(fields: [section], references: [name], onDelete: NoAction, onUpdate: NoAction)
+  section         sections
   image_url       String?
   alt_text        String?
   groups_students groups_students[]
 
   @@index([list_number])
   @@index([name, last_name])
-  @@index([section])
 }
 
 model users {
@@ -99,7 +97,12 @@ enum user_roles {
   user
 }
 
-model sections {
-  name     String     @id @db.Char(1)
-  students students[]
+enum sections {
+  A
+  B
+  C
+  D
+  E
+  F
+  G
 }

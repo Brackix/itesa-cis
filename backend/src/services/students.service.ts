@@ -1,9 +1,9 @@
 import prisma from "../config/prisma.config";
 import { CryptoUtil } from "../utils/crypto.util";
-import { Prisma } from "@prisma/client";
+import { Prisma, sections } from "@prisma/client";
 
 export class StudentService {
-    static async getStudents(filters: { section?: string; search?: string }) {
+    static async getStudents(filters: { section?: sections; search?: string }) {
         const whereClause: Prisma.studentsWhereInput = {};
 
         if (filters.section) {
@@ -33,7 +33,7 @@ export class StudentService {
         list_number: number;
         name: string;
         last_name: string;
-        section: string;
+        section: sections;
         image_url?: string;
         alt_text?: string;
     }) {
@@ -41,8 +41,13 @@ export class StudentService {
         return await prisma.students.create({
             data: {
                 id: studentId,
-                ...data,
-            },
+                list_number: data.list_number,
+                name: data.name,
+                last_name: data.last_name,
+                section: data.section,
+                image_url: data.image_url,
+                alt_text: data.alt_text,
+            } as Prisma.studentsUncheckedCreateInput,
         });
     }
 
@@ -50,7 +55,7 @@ export class StudentService {
         list_number: number;
         name: string;
         last_name: string;
-        section: string;
+        section: sections;
         image_url: string;
         alt_text: string;
     }>) {
@@ -62,12 +67,10 @@ export class StudentService {
 
     static async deleteStudent(id: string) {
         return await prisma.$transaction(async (tx) => {
-            // First delete relations to fulfill business rule #4 (manual cascade)
             await tx.groups_students.deleteMany({
                 where: { student_id: id }
             });
 
-            // Then delete the student
             return await tx.students.delete({
                 where: { id }
             });
@@ -94,23 +97,13 @@ export class StudentService {
             }
         });
 
-        if (!student) {
-            return null;
-        }
+        if (!student) return null;
 
-        const relation = student.groups_students[0]; // Assuming rule #1 restricts to 1 group
-
-        // Build base student object excluding populated relations
+        const relation = student.groups_students[0];
         const { groups_students: _groups_students, ...studentData } = student;
 
         if (!relation) {
-            return {
-                student: studentData,
-                group: null,
-                role: null,
-                project: null,
-                progress: 0
-            };
+            return { student: studentData, group: null, role: null, project: null, progress: 0 };
         }
 
         const group = relation.groups;
@@ -120,26 +113,18 @@ export class StudentService {
         let progress = 0;
         if (project && project.project_criterion_evaluations.length > 0) {
             const achievedCount = project.project_criterion_evaluations.filter(
-                (evalItem: { status: string }) => evalItem.status === "achieved"
+                (e) => e.status === "achieved"
             ).length;
-            const totalCount = project.project_criterion_evaluations.length;
-            progress = Math.round((achievedCount / totalCount) * 100);
+            progress = Math.round((achievedCount / project.project_criterion_evaluations.length) * 100);
         }
 
-        // Clean up nesting
         const { projects: _projects, ...groupData } = group;
         let projectData = null;
         if (project) {
-            const { project_criterion_evaluations: _project_criterion_evaluations, ...pData } = project;
+            const { project_criterion_evaluations: _, ...pData } = project;
             projectData = pData;
         }
 
-        return {
-            student: studentData,
-            group: groupData,
-            role,
-            project: projectData,
-            progress
-        };
+        return { student: studentData, group: groupData, role, project: projectData, progress };
     }
 }
