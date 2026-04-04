@@ -1,19 +1,3 @@
-// =============================================================================
-// CIS SCHOOL FAIR — Prisma Schema
-// Database: PostgreSQL
-// -----------------------------------------------------------------------------
-// Design philosophy:
-//   - "Fair" is the top-level aggregate root, enabling multiple fairs over time.
-//   - Students are pre-loaded (seed data); registration is an activation step,
-//     not account creation from scratch.
-//   - Soft-deletion is applied to entities that may be referenced historically
-//     (Student, Group, Criterion) so audit trails remain intact.
-//   - Enums are used wherever a finite, well-known set of values exists.
-//   - Composite unique constraints enforce business rules at the DB level.
-//   - Indexes are placed on every FK and on columns used in frequent filters
-//     (week, status, groupId).
-// =============================================================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,261 +7,93 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------------------------
-// ENUMS
-// ---------------------------------------------------------------------------
+model groups {
+  id              String            @id @db.Uuid
+  group_name      String            @db.VarChar
+  groups_students groups_students[]
+  projects        projects[]
 
-/// Registration / activation state of a student account.
-enum RegistrationStatus {
-  PENDING // Pre-loaded; has not yet activated their account.
-  ACTIVE // Has completed registration (set credentials, etc.).
-  SUSPENDED // Temporarily blocked by an admin.
+  @@index([group_name])
 }
 
-/// Lifecycle state of a group evaluation against a single criterion.
-enum EvaluationStatus {
-  PENDING // Not yet acted on by the group.
-  SUBMITTED // Group has submitted evidence / marked as done.
-  APPROVED // Teacher has approved the submission.
-  REJECTED // Teacher has rejected the submission (requires revision).
-  WAIVED // Criterion was waived for this group by a teacher.
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model groups_students {
+  id             String   @id @db.Uuid
+  group_id       String   @db.Uuid
+  student_id     String   @db.Uuid
+  is_coordinator Boolean? @default(false)
+  groups         groups   @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  students       students @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([group_id, student_id], map: "groups_students_group_id_student_id_idx")
 }
 
-/// Role of a platform user — extensible for future roles (e.g., ADMIN, JUDGE).
-enum UserRole {
-  TEACHER
-  ADMIN
+model project_criteria {
+  id                            String                          @id @db.Uuid
+  name                          String                          @db.VarChar
+  description                   String?
+  project_criterion_evaluations project_criterion_evaluations[]
 }
 
-// ---------------------------------------------------------------------------
-// FAIR  (top-level aggregate — enables multi-fair support in the future)
-// ---------------------------------------------------------------------------
-
-/// A school fair event. All groups, criteria and evaluations belong to a fair.
-/// This is the primary isolation boundary for multi-year / multi-event support.
-model Fair {
-  id          String    @id @default(cuid())
-  name        String // e.g. "CIS Fair 2025"
-  description String?
-  year        Int // Denormalised for fast year-based queries.
-  startDate   DateTime?
-  endDate     DateTime?
-  isActive    Boolean   @default(true) // Only one fair is "active" at a time.
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  sections Section[]
-  groups   Group[]
-  criteria Criterion[]
-
-  @@index([year])
-  @@index([isActive])
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model project_criterion_evaluations {
+  id               String                   @id @db.Uuid
+  project_id       String                   @db.Uuid
+  criterion_id     String                   @db.Uuid
+  phase            evaluation_phase         @default(preparation)
+  start_date       DateTime?                @db.Timestamp(6)
+  end_date         DateTime?                @db.Timestamp(6)
+  status           project_criterion_status @default(in_progress)
+  notes            String?
+  project_criteria project_criteria         @relation(fields: [criterion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects         projects                 @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-// ---------------------------------------------------------------------------
-// SECTION  (organisational — A, B, C …)
-// ---------------------------------------------------------------------------
-
-/// A classroom section within a given fair/grade.
-/// Sections are scoped to a Fair because section names may repeat across years.
-model Section {
-  id     String @id @default(cuid())
-  name   String // e.g. "A", "B", "6to-E"
-  fairId String
-  fair   Fair   @relation(fields: [fairId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  students Student[]
-
-  /// A section name must be unique within a fair.
-  @@unique([fairId, name])
-  @@index([fairId])
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model projects {
+  id                            String                          @id @db.Uuid
+  name                          String                          @db.VarChar
+  description                   String?
+  group_id                      String                          @db.Uuid
+  project_criterion_evaluations project_criterion_evaluations[]
+  groups                        groups                          @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-// ---------------------------------------------------------------------------
-// STUDENT  (pre-loaded; activation via registration)
-// ---------------------------------------------------------------------------
+model students {
+  id              String            @id @db.Uuid
+  list_number     Int
+  name            String            @db.VarChar
+  last_name       String            @db.VarChar
+  section         String            @db.Char(1)
+  image_url       String?
+  alt_text        String?
+  groups_students groups_students[]
 
-/// A student record pre-loaded by admins.
-/// The student "registers" by activating their account (setting a password, etc.).
-/// Soft-deleted students are hidden from the UI but preserved for historical data.
-model Student {
-  id                 String             @id @default(cuid())
-  firstName          String
-  lastName           String
-  studentCode        String?            @unique // Institutional ID / code. (Populated on activation)
-  institutionalEmail String?            @unique
-  supabaseUserId     String?            @unique
-  sectionId          String
-  section            Section            @relation(fields: [sectionId], references: [id])
-  passwordHash       String?
-  // --- Registration / Activation ---
-  registrationStatus RegistrationStatus @default(PENDING)
-  /// Populated when the student activates their account.
-  userId             String?            @unique
-  user               User?              @relation(fields: [userId], references: [id])
-  /// Timestamp of the first successful login (bonus requirement).
-  firstLoginAt       DateTime?
-  registeredAt       DateTime? // When they completed activation.
-
-  // --- Group membership ---
-  /// A student belongs to at most one group per fair (enforced via Group relation).
-  groupId String?
-  group   Group?  @relation(fields: [groupId], references: [id])
-
-  // --- Soft deletion ---
-  deletedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([sectionId])
-  @@index([groupId])
-  @@index([registrationStatus])
-  @@index([deletedAt])
+  @@index([list_number])
+  @@index([name, last_name])
+  @@index([section])
 }
 
-// ---------------------------------------------------------------------------
-// USER  (authentication identity — separate from Student/Teacher records)
-// ---------------------------------------------------------------------------
-
-/// Platform user account. Decoupled from domain entities (Student, Teacher)
-/// so that authentication concerns don't pollute domain models.
-/// A User is linked 1-to-1 with either a Student or a Teacher, never both.
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  role         UserRole @default(TEACHER)
-
-  /// Tracks whether this user has ever logged in (bonus requirement).
-  lastLoginAt DateTime?
-  loginCount  Int       @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations — exactly one of these will be populated per user.
-  student Student?
-  teacher Teacher?
+model users {
+  id            String     @id @db.Uuid
+  username      String     @unique @db.VarChar
+  password_hash String
+  role          user_roles @default(user)
 }
 
-// ---------------------------------------------------------------------------
-// TEACHER
-// ---------------------------------------------------------------------------
-
-/// A teacher who can create criteria and evaluate groups.
-model Teacher {
-  id        String @id @default(cuid())
-  firstName String
-  lastName  String
-  userId    String @unique
-  user      User   @relation(fields: [userId], references: [id])
-
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  // Relations
-  criteria    Criterion[]
-  evaluations GroupEvaluation[]
-
-  @@index([deletedAt])
+enum evaluation_phase {
+  preparation
+  fair
 }
 
-// ---------------------------------------------------------------------------
-// GROUP
-// ---------------------------------------------------------------------------
-
-/// A project group composed of ~7 students, potentially from different sections.
-/// Groups are scoped to a Fair.
-model Group {
-  id     String @id @default(cuid())
-  name   String // e.g. "Group 1", "Los Innovadores"
-  fairId String
-  fair   Fair   @relation(fields: [fairId], references: [id])
-
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  // Relations
-  students    Student[]
-  evaluations GroupEvaluation[]
-
-  /// Group names must be unique within a fair.
-  @@unique([fairId, name])
-  @@index([fairId])
-  @@index([deletedAt])
+enum project_criterion_status {
+  in_progress
+  achieved
+  not_achieved
+  late
 }
 
-// ---------------------------------------------------------------------------
-// CRITERION  (weekly evaluation task defined by a teacher)
-// ---------------------------------------------------------------------------
-
-/// A single evaluation task or requirement defined by a teacher for a given week.
-/// Criteria are scoped to a Fair so they can be reused as templates across years
-/// if desired, but remain isolated per event.
-model Criterion {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  weekNumber  Int // e.g. 1, 2, 3 … N
-  deadline    DateTime? // Optional hard deadline for this criterion.
-  fairId      String
-  fair        Fair      @relation(fields: [fairId], references: [id])
-  createdById String
-  createdBy   Teacher   @relation(fields: [createdById], references: [id])
-
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  // Relations
-  evaluations GroupEvaluation[]
-
-  @@index([fairId])
-  @@index([weekNumber])
-  @@index([fairId, weekNumber]) // Common query: "all criteria for week N in fair X"
-  @@index([deletedAt])
-}
-
-// ---------------------------------------------------------------------------
-// GROUP EVALUATION  (junction: group × criterion — the core tracking table)
-// ---------------------------------------------------------------------------
-
-/// Tracks whether a group has fulfilled a given criterion.
-/// One record per (group, criterion) pair — enforced by the unique constraint.
-/// This is the central tracking table for the fair's evaluation workflow.
-model GroupEvaluation {
-  id          String    @id @default(cuid())
-  groupId     String
-  group       Group     @relation(fields: [groupId], references: [id])
-  criterionId String
-  criterion   Criterion @relation(fields: [criterionId], references: [id])
-
-  status   EvaluationStatus @default(PENDING)
-  feedback String? // Optional teacher feedback / rejection reason.
-
-  /// The teacher who last updated this evaluation record.
-  reviewedById String?
-  reviewedBy   Teacher?  @relation(fields: [reviewedById], references: [id])
-  reviewedAt   DateTime? // Timestamp of the last status change.
-
-  /// Evidence URL or note submitted by the group (e.g. link to a document).
-  submissionNote String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /// One evaluation record per group-criterion pair.
-  @@unique([groupId, criterionId])
-  @@index([groupId])
-  @@index([criterionId])
-  @@index([status])
-  @@index([reviewedById])
+enum user_roles {
+  brackix
+  user
 }
