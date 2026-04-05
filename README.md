@@ -64,5 +64,5 @@ npm run dev
 
 ## Autor
 - **Brackix** - *Desarrollo Inicial*
-- Brackix lo mejoreeee
+- Brackix palde comi
 
