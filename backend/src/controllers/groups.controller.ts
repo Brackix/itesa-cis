@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { groupsService } from "../services/groups.service";
-import { AppError } from "../utils/appError.util";
 
 export class GroupsController {
 
@@ -10,12 +9,13 @@ export class GroupsController {
     };
 
     static findById = async (req: Request, res: Response) => {
-        const id = req.params.id as string;
+        const { groupId } = req.params;
+        if (!groupId) return res.status(400).json({ error: "GROUP_ID_NOT_SPECIFIED" });
 
-        const data = await groupsService.findById(id);
+        const data = await groupsService.findById(groupId as string);
 
         if (!data) {
-            throw new AppError("GROUP_NOT_FOUND", 404);
+            return res.status(404).json({ error: "GROUP_NOT_FOUIND" })
         }
 
         return res.json({ success: true, data });
@@ -25,7 +25,7 @@ export class GroupsController {
         const { name } = req.body;
 
         if (!name) {
-            throw new AppError("GROUP_NAME_REQUIRED", 400);
+            return res.status(400).json({ error: "GROUP_NAME_REQUIRED" });
         }
 
         const data = await groupsService.create(name);
@@ -34,22 +34,22 @@ export class GroupsController {
     };
 
     static update = async (req: Request, res: Response) => {
-        const id = req.params.id as string;
+        const { groupId } = req.params;
         const { name } = req.body;
 
         if (!name) {
-            throw new AppError("GROUP_NAME_REQUIRED", 400);
+            return res.status(400).json({ error: "GROUP_NAME_REQUIRED" });
         }
 
-        const data = await groupsService.update(id, name);
+        const data = await groupsService.update(groupId as string, name);
 
         return res.json({ success: true, data });
     };
 
     static delete = async (req: Request, res: Response) => {
-        const id = req.params.id as string;
+        const { groupId } = req.params;
 
-        const data = await groupsService.delete(id);
+        const data = await groupsService.delete(groupId as string);
 
         return res.json({ success: true, data });
     };
@@ -66,7 +66,7 @@ export class GroupsController {
     static getStudentsFromGroup = async (req: Request, res: Response) => {
         const { groupId } = req.params;
 
-        if (!groupId) throw new AppError("NO_GROUP_SPECIFIED", 400);
+        if (!groupId) return res.status(400).json({ error: "GROUP_ID_NOT_SPECIFIED" });
 
         const result = await groupsService.getStudentsFromGroup(groupId as string);
 
@@ -75,47 +75,45 @@ export class GroupsController {
 
 
     static addStudents = async (req: Request, res: Response) => {
-        const { id, replaceCoordinator } = req.params;
-        const { students } = req.body;
+        const { groupId } = req.params;
+        const { students, replaceCoordinator } = req.body;
 
         if (!Array.isArray(students) || students.length === 0) {
-            throw new AppError("INVALID_STUDENTS_ARRAY", 400);
+            return res.status(400).json({ error: "INVALID_STUDENTS_ARRAY" });
         }
 
-        // ⚠️ convertir string → boolean
-        const replace = replaceCoordinator === "true";
-
         const result = await groupsService.addStudentsToGroup(
-            id as string,
+            groupId as string,
             students,
-            replace
+            !!replaceCoordinator
         );
 
         return res.json(result);
     };
 
     static setCoordinator = async (req: Request, res: Response) => {
-        const { id, studentId } = req.params;
+        const { groupId, studentId } = req.params;
 
         const result = await groupsService.setNewCoordinator(
             studentId as string,
-            id as string
+            groupId as string
         );
 
         return res.json(result);
     };
 
     static deleteStudents = async (req: Request, res: Response) => {
-        const groupId = req.params.groupId as string;
+        const { groupId } = req.params;
         const { studentIds } = req.body;
 
         if (!Array.isArray(studentIds)) {
-            throw new AppError("INVALID_STUDENT_IDS", 400);
+            return res.status(400).json({ error: "INVALID_STUDENTS_IDS" });
         }
 
+        // Enviar solo el array de strings al servicio
         const result = await groupsService.deleteStudentFromGroup(
             studentIds,
-            groupId
+            groupId as string
         );
 
         return res.json(result);

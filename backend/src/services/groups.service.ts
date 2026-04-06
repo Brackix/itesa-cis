@@ -33,16 +33,22 @@ export class groupsService {
         const groups = await prisma.groups.findMany({
             include: {
                 groups_students: {
+                    orderBy: {
+                        students: {
+                            list_number: 'asc'
+                        }
+                    },
                     include: {
-                        students: true
+                        students: true,
                     }
-                }
+                },
             }
         });
 
         return groups.map(group => ({
             id: group.id,
             name: group.group_name,
+            isFull: group.group_full,
             students: group.groups_students.map(gs => ({
                 id: gs.students.id,
                 list_number: gs.students.list_number,
@@ -59,12 +65,15 @@ export class groupsService {
 
     static async getStudentsFromGroup(groupId: string) {
         const group = await prisma.groups.findUnique({ where: { id: groupId } });
+
         if (!group) throw new AppError('GROUP_NOT_FOUND', 404);
 
         const students = await prisma.groups_students.findMany({
             where: { group_id: groupId },
-            include: {
-                students: true
+            orderBy: {
+                students: {
+                    list_number: 'asc'
+                }
             }
         });
 
@@ -91,14 +100,50 @@ export class groupsService {
             throw new AppError('DUPLICATED_STUDENTS_IN_REQUEST', 400);
         }
 
-        // 4. Validar coordinadores en request
+        // 3. Validar existencia de estudiantes en la base de datos
+        const existingStudents = await prisma.students.findMany({
+            where: { id: { in: studentIds } },
+            select: { id: true }
+        });
+
+        if (existingStudents.length !== studentIds.length) {
+            const existingIds = existingStudents.map(s => s.id);
+            const missingIds = studentIds.filter(id => !existingIds.includes(id));
+            throw new AppError(`STUDENTS_NOT_FOUND: ${missingIds.join(', ')}`, 404);
+        }
+
+        // 4. Validar que los estudiantes no estén ya asignados a NINGÚN grupo
+        const alreadyAssigned = await prisma.groups_students.findMany({
+            where: { student_id: { in: studentIds } },
+            select: { student_id: true }
+        });
+
+        if (alreadyAssigned.length > 0) {
+            const assignedIds = alreadyAssigned.map(a => a.student_id);
+            throw new AppError(`STUDENTS_ALREADY_IN_GROUPS: ${assignedIds.join(', ')}`, 409);
+        }
+
+        // 5. Validar capacidad del grupo (Máximo 7)
+        const currentCount = await prisma.groups_students.count({
+            where: { group_id: groupId }
+        });
+
+        if (currentCount >= 7) {
+            throw new AppError('GROUP_IS_FULL', 422);
+        }
+
+        if (currentCount + studentIds.length > 7) {
+            throw new AppError(`CAPACITY_EXCEEDED: Only ${7 - currentCount} spots left.`, 422);
+        }
+
+        // 6. Validar coordinadores en request
         const coordinators = students.filter(s => s.isCoordinator);
 
         if (coordinators.length > 1) {
             throw new AppError('ONLY_ONE_COORDINATOR_ALLOWED', 422);
         }
 
-        // 5. Buscar coordinador actual
+        // 7. Buscar coordinador actual
         const currentCoordinator = await prisma.groups_students.findFirst({
             where: {
                 group_id: groupId,
@@ -106,16 +151,14 @@ export class groupsService {
             }
         });
 
-        // 6. Reglas de reemplazo
+        // 8. Reglas de reemplazo
         if (coordinators.length === 1) {
-
             if (currentCoordinator && !replaceCoordinator) {
                 throw new AppError('GROUP_ALREADY_HAS_COORDINATOR', 409);
             }
-
         }
 
-        // 7. Transacción (CRÍTICO)
+        // 9. Transacción (CRÍTICO)
         await prisma.$transaction(async (tx) => {
 
             // Si hay que reemplazar coordinador
@@ -139,6 +182,14 @@ export class groupsService {
                     is_coordinator: student.isCoordinator
                 }))
             });
+
+            // Actualizar estado del grupo si se llenó
+            if (currentCount + studentIds.length === 7) {
+                await tx.groups.update({
+                    where: { id: groupId },
+                    data: { group_full: true }
+                });
+            }
 
         });
 
@@ -203,45 +254,58 @@ export class groupsService {
     }
 
     static async deleteStudentFromGroup(
-        studentIds: { id: string }[],
+        studentIds: string[],
         groupId: string
     ) {
         return await prisma.$transaction(async (tx) => {
 
-            // 1. Transformar input → string[]
-            const ids = studentIds.map(s => s.id);
-
-            if (ids.length === 0) {
+            if (studentIds.length === 0) {
                 throw new AppError("EMPTY_STUDENT_LIST", 400);
             }
 
-            // 2. Validar cuáles están en el grupo
-            const students = await tx.groups_students.findMany({
+            // 1. Validar cuáles están en el grupo
+            const studentsInGroup = await tx.groups_students.findMany({
                 where: {
                     group_id: groupId,
-                    student_id: { in: ids }
+                    student_id: { in: studentIds }
                 },
                 select: {
                     student_id: true
                 }
             });
 
-            if (students.length !== ids.length) {
-                throw new AppError("SOME_STUDENTS_NOT_IN_GROUP", 404);
+            const foundIds = studentsInGroup.map(s => s.student_id);
+            const missingIds = studentIds.filter(id => !foundIds.includes(id));
+
+            // 2. Eliminar solo los que sí están en el grupo
+            if (foundIds.length > 0) {
+                await tx.groups_students.deleteMany({
+                    where: {
+                        group_id: groupId,
+                        student_id: { in: foundIds }
+                    }
+                });
+
+                // 3. Actualizar status del grupo (ya no puede estar lleno)
+                await tx.groups.update({
+                    where: { id: groupId },
+                    data: { group_full: false }
+                });
             }
 
-            // 3. Eliminar
-            const deleted = await tx.groups_students.deleteMany({
-                where: {
-                    group_id: groupId,
-                    student_id: { in: ids }
-                }
-            });
+            // 4. Si hubo algunos no encontrados, devolvemos error pero persistimos la eliminación
+            if (missingIds.length > 0) {
+                return {
+                    success: false,
+                    error: "SOME_STUDENTS_NOT_IN_GROUP",
+                    deletedCount: foundIds.length,
+                    missingIds
+                };
+            }
 
             return {
                 success: true,
-                deletedCount: deleted.count,
-                deletedStudents: students
+                deletedCount: foundIds.length
             };
         });
     }

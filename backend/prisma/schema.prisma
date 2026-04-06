@@ -10,6 +10,7 @@ datasource db {
 model groups {
   id              String            @id @db.Uuid
   group_name      String            @db.VarChar
+  group_full      Boolean           @default(false)
   groups_students groups_students[]
   projects        projects[]
 
