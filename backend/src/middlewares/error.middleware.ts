@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/appError.util";
 
@@ -6,7 +6,6 @@ export const errorMiddleware = (
     error: any,
     req: Request,
     res: Response,
-    next: NextFunction
 ) => {
 
     if (error instanceof AppError) {
