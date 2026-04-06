@@ -117,50 +117,74 @@ Devuelve:
 
 ### GET /groups
 
-Lista grupos.
+Lista todos los grupos (sin estudiantes).
 
-### GET /groups/:id
+### GET /groups/students
 
-Detalle de grupo.
+Lista todos los grupos **incluyendo** sus estudiantes y el estado `isFull`.
+
+### GET /groups/:groupId
+
+Detalle de un grupo específico.
 
 ### POST /groups
 
 Crear grupo.
+**Body:** `{"name": "string"}`
 
-### PUT /groups/:id
+### PUT /groups/:groupId
 
-Actualizar grupo.
+Actualizar nombre del grupo.
+**Body:** `{"name": "string"}`
 
-### DELETE /groups/:id
+### DELETE /groups/:groupId
 
-Eliminar grupo.
+Eliminar grupo (borra vinculaciones con estudiantes).
 
 ---
 
 ## Operaciones especiales
 
-### POST /groups/:id/students
+### POST /groups/:groupId/students
 
-Asigna estudiante a grupo.
+Asigna estudiantes a un grupo.
 
+**Body:**
 ```json
 {
-  "studentId": "uuid",
-  "isCoordinator": false
+  "students": [
+    { "id": "uuid", "isCoordinator": false },
+    { "id": "uuid", "isCoordinator": true }
+  ],
+  "replaceCoordinator": true
 }
 ```
 
+**Validaciones:**
+* Máximo 7 estudiantes por grupo.
+* Solo un coordinador por grupo.
+* El estudiante no debe estar en otro grupo.
+
 ---
 
-### PATCH /groups/:id/coordinator
+### PATCH /groups/:groupId/coordinator/:studentId
 
-Define coordinador del grupo.
+Define un nuevo coordinador para el grupo (desactiva al anterior).
 
 ---
 
-### DELETE /groups/:id/students/:studentId
+### DELETE /groups/:groupId/students
 
-Remueve estudiante del grupo.
+Remueve estudiantes del grupo.
+
+**Body:**
+```json
+{
+  "studentIds": ["uuid1", "uuid2", ...]
+}
+```
+
+**Nota:** Si algún ID no está en el grupo, se eliminan los que sí estén y se devuelve un error parcial con la lista de `missingIds`.
 
 ---
 
@@ -311,19 +335,25 @@ Progreso por grupo.
 
 ### 1. Un estudiante solo puede estar en un grupo
 
-* Remover de grupo anterior antes de asignar
+* No se permite asignar un estudiante si ya tiene una entrada en `groups_students`.
 
 ---
 
 ### 2. Un grupo solo tiene un proyecto
 
-* Validar antes de crear
+* Validar antes de crear.
 
 ---
 
 ### 3. Coordinador único
 
-* Solo un `is_coordinator = true` por grupo
+* Solo un `is_coordinator = true` por grupo.
+
+---
+
+### 4. Capacidad del grupo
+
+* Máximo 7 estudiantes por grupo. El campo `group_full` se actualiza automáticamente.
 
 ---
 
