@@ -7,7 +7,10 @@ type StudentInput = {
     isCoordinator: boolean;
 };
 
+const MAX_STUDENTS_PER_GROUP = 7;
+
 export class groupsService {
+
     static async findAll() {
         return prisma.groups.findMany();
     }
@@ -128,12 +131,12 @@ export class groupsService {
             where: { group_id: groupId }
         });
 
-        if (currentCount >= 7) {
+        if (currentCount >= MAX_STUDENTS_PER_GROUP) {
             throw new AppError('GROUP_IS_FULL', 422);
         }
 
-        if (currentCount + studentIds.length > 7) {
-            throw new AppError(`CAPACITY_EXCEEDED: Only ${7 - currentCount} spots left.`, 422);
+        if (currentCount + studentIds.length > MAX_STUDENTS_PER_GROUP) {
+            throw new AppError(`CAPACITY_EXCEEDED: Only ${MAX_STUDENTS_PER_GROUP - currentCount} spots left.`, 422);
         }
 
         // 6. Validar coordinadores en request
@@ -184,7 +187,7 @@ export class groupsService {
             });
 
             // Actualizar estado del grupo si se llenó
-            if (currentCount + studentIds.length === 7) {
+            if (currentCount + studentIds.length === MAX_STUDENTS_PER_GROUP) {
                 await tx.groups.update({
                     where: { id: groupId },
                     data: { group_full: true }
