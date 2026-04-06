@@ -10,6 +10,7 @@ datasource db {
 model groups {
   id              String            @id @db.Uuid
   group_name      String            @db.VarChar
+  group_full      Boolean           @default(false)
   groups_students groups_students[]
   projects        projects[]
 
@@ -20,7 +21,7 @@ model groups {
 model groups_students {
   id             String   @id @db.Uuid
   group_id       String   @db.Uuid
-  student_id     String   @db.Uuid
+  student_id     String   @unique @db.Uuid
   is_coordinator Boolean? @default(false)
   groups         groups   @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   students       students @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -64,15 +65,13 @@ model students {
   list_number     Int
   name            String            @db.VarChar
   last_name       String            @db.VarChar
-  section         String            @db.Char(1)
-  sections        sections          @relation(fields: [section], references: [name], onDelete: NoAction, onUpdate: NoAction)
+  section         sections
   image_url       String?
   alt_text        String?
   groups_students groups_students[]
 
   @@index([list_number])
   @@index([name, last_name])
-  @@index([section])
 }
 
 model users {
@@ -99,7 +98,12 @@ enum user_roles {
   user
 }
 
-model sections {
-  name     String     @id @db.Char(1)
-  students students[]
+enum sections {
+  A
+  B
+  C
+  D
+  E
+  F
+  G
 }
