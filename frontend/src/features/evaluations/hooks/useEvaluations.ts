@@ -11,37 +11,44 @@ interface EvaluationStore {
     updateEvaluation: (evaluation: ProjectCriterionEvaluation) => void;
 }
 
-const mockCriteria: ProjectCriterion[] = [
-    { id: '1', name: 'Funcionalidad', description: 'El proyecto cumple con los requisitos funcionales' },
-    { id: '2', name: 'Diseño', description: 'El proyecto tiene un diseño atractivo y usable' },
-];
-
-const mockEvaluations: ProjectCriterionEvaluation[] = [
-    {
-        id: '1',
-        project_id: '1',
-        criterion_id: '1',
-        phase: 'preparation',
-        status: 'in_progress',
-    },
-];
+import axios from 'axios';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export const useEvaluationStore = create<EvaluationStore>((set) => ({
-    evaluations: mockEvaluations,
-    criteria: mockCriteria,
+    evaluations: [],
+    criteria: [],
     loading: false,
     error: null,
-    fetchEvaluations: () => {
-        set({ loading: true });
-        setTimeout(() => set({ evaluations: mockEvaluations, loading: false }), 500);
+    fetchEvaluations: async () => {
+        set({ loading: true, error: null });
+        try {
+            const res = await axios.get(`${API_URL}/evaluations`);
+            set({ evaluations: res.data.data, loading: false });
+        } catch (error: any) {
+            set({ error: error.message, loading: false });
+        }
     },
-    fetchCriteria: () => {
-        set({ loading: true });
-        setTimeout(() => set({ criteria: mockCriteria, loading: false }), 500);
+    fetchCriteria: async () => {
+        set({ loading: true, error: null });
+        try {
+            const res = await axios.get(`${API_URL}/project_criteria`);
+            set({ criteria: res.data.data, loading: false });
+        } catch (error: any) {
+            set({ error: error.message, loading: false });
+        }
     },
-    updateEvaluation: (evaluation) => {
-        set((state) => ({
-            evaluations: state.evaluations.map((e) => (e.id === evaluation.id ? evaluation : e))
-        }));
+    updateEvaluation: async (evaluation) => {
+        try {
+            const updatePayload = {
+                status: evaluation.status,
+                notes: evaluation.notes
+            };
+            const res = await axios.put(`${API_URL}/evaluations/${evaluation.id}`, updatePayload);
+            set((state) => ({
+                evaluations: state.evaluations.map((e) => (e.id === evaluation.id ? res.data.data : e))
+            }));
+        } catch (error: any) {
+            console.error("Failed to update evaluation", error);
+        }
     }
 }));

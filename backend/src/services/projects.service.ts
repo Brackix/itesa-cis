@@ -18,10 +18,20 @@ export class ProjectService {
         const group = await prisma.groups.findUnique({ where: { id: data.group_id } });
         if (!group) throw new AppError("GROUP_NOT_FOUND", 404);
 
+        const project_id = CryptoUtil.generateUUID();
+        const criteria = await prisma.project_criteria.findMany();
+
         return await prisma.projects.create({
             data: {
-                id: CryptoUtil.generateUUID(),
-                ...data
+                id: project_id,
+                ...data,
+                project_criterion_evaluations: {
+                    create: criteria.map(c => ({
+                        id: CryptoUtil.generateUUID(),
+                        criterion_id: c.id,
+                        status: 'in_progress'
+                    }))
+                }
             }
         });
     }
