@@ -70,6 +70,7 @@ model students {
   alt_text        String?
   groups_students groups_students[]
 
+  @@unique([list_number, section])
   @@index([list_number])
   @@index([name, last_name])
 }

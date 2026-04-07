@@ -13,13 +13,15 @@ import { useStudentStore } from '../hooks/useStudents';
 import { Student } from '../types/student.types';
 import { StudentForm } from './StudentForm';
 import { StudentProfile } from './StudentProfile';
+import { StudentService } from '../services/student.service';
 
 export const StudentTable = () => {
-    const { students, loading, fetchStudents, deleteStudent } = useStudentStore();
     const [studentDialog, setStudentDialog] = useState(false);
     const [deleteStudentDialog, setDeleteStudentDialog] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [profileDialog, setProfileDialog] = useState(false);
+    const [previewDialog, setPreviewDialog] = useState(false);
+    const [previewData, setPreviewData] = useState<any[]>([]);
     const toast = useRef<Toast>(null);
 
     const [globalFilterValue, setGlobalFilterValue] = useState<string>('');
@@ -90,12 +92,67 @@ export const StudentTable = () => {
         }
     };
 
+    const fileUploadRef = useRef<HTMLInputElement>(null);
+    const { students, loading, fetchStudents, deleteStudent, uploadExcelPreview, confirmExcelUpload } = useStudentStore();
+
     const leftToolbarTemplate = () => {
         return (
             <div className="flex flex-wrap gap-2">
                 <Button label="Nuevo" icon="pi pi-plus" severity="success" onClick={openNew} />
+                <Button 
+                    label="Cargar Excel" 
+                    icon="pi pi-file-excel" 
+                    severity="info" 
+                    onClick={() => fileUploadRef.current?.click()} 
+                    loading={loading}
+                />
+                <Button 
+                    label="Descargar Plantilla" 
+                    icon="pi pi-download" 
+                    severity="secondary" 
+                    outlined
+                    onClick={async () => {
+                        try {
+                            await StudentService.downloadTemplate();
+                        } catch (err) {
+                            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Fallo al descargar la plantilla' });
+                        }
+                    }}
+                />
+                <input 
+                    type="file" 
+                    ref={fileUploadRef} 
+                    style={{ display: 'none' }} 
+                    accept=".xlsx, .xls"
+                    onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                            try {
+                                const res = await uploadExcelPreview(file);
+                                setPreviewData(res.data);
+                                setPreviewDialog(true);
+                                toast.current?.show({ severity: 'info', summary: 'Preview', detail: `Se encontraron ${res.count} estudiantes.`, life: 3000 });
+                            } catch (err: any) {
+                                toast.current?.show({ severity: 'error', summary: 'Error de Lectura', detail: err.message, life: 5000 });
+                            }
+                            if (fileUploadRef.current) fileUploadRef.current.value = "";
+                        }
+                    }}
+                />
             </div>
         );
+    };
+
+    const submitBulkConfirm = async () => {
+        try {
+            const res = await confirmExcelUpload(previewData);
+            toast.current?.show({ severity: 'success', summary: 'Carga Exitosa', detail: `Se insertaron/actualizaron ${res.count} estudiantes en la Base de Datos.`, life: 5000 });
+            setPreviewDialog(false);
+            setPreviewData([]);
+            fetchStudents({ section: selectedSection || undefined, search: globalFilterValue || undefined });
+        } catch (err: any) {
+            toast.current?.show({ severity: 'error', summary: 'Error de Inserción', detail: err.message, life: 5000 });
+        }
     };
 
     const header = (
@@ -234,6 +291,33 @@ export const StudentTable = () => {
                             ¿Estás seguro de que quieres eliminar a <b>{selectedStudent.name} {selectedStudent.last_name}</b>?
                         </span>
                     )}
+                </div>
+            </Dialog>
+
+            <Dialog
+                visible={previewDialog}
+                style={{ width: '80vw' }}
+                breakpoints={{ '960px': '95vw' }}
+                header={`Vista Previa de Importación Masiva (${previewData.length} detectados)`}
+                modal
+                onHide={() => setPreviewDialog(false)}
+                footer={
+                    <React.Fragment>
+                        <Button label="Cancelar" icon="pi pi-times" outlined onClick={() => setPreviewDialog(false)} disabled={loading} />
+                        <Button label="Confirmar Inserción a Base de Datos" icon="pi pi-check" severity="success" onClick={submitBulkConfirm} loading={loading} />
+                    </React.Fragment>
+                }
+            >
+                <div>
+                    <p className="m-0 mb-3 text-color-secondary">
+                        Verifique visualmente la estructura detectada antes de presionar confirmar. Los datos con secciones idénticas y números de lista sobrescribirán los nombres en la base de datos protegiendo relaciones anteriores.
+                    </p>
+                    <DataTable value={previewData} paginator rows={10} className="datatable-responsive" emptyMessage="No se pudo leer la tabla, verifique formato.">
+                        <Column field="list_number" header="No. Lista" sortable></Column>
+                        <Column field="name" header="Nombres" sortable></Column>
+                        <Column field="last_name" header="Apellidos" sortable></Column>
+                        <Column field="section" header="Sección" sortable></Column>
+                    </DataTable>
                 </div>
             </Dialog>
         </div>

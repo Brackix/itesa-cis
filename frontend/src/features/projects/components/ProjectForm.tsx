@@ -2,7 +2,7 @@
 
 
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
@@ -24,9 +24,8 @@ export const ProjectForm = ({ initialData, onHide }: ProjectFormProps) => {
     const {
         register,
         handleSubmit,
-        formState: { errors },
-        setValue,
-        watch,
+        control,
+        formState: { errors }
     } = useForm<CreateProjectInput>({
         defaultValues: initialData || {
             name: '',
@@ -73,13 +72,20 @@ export const ProjectForm = ({ initialData, onHide }: ProjectFormProps) => {
 
             <div className="field">
                 <label htmlFor="group_id" className="font-bold">Grupo</label>
-                <Dropdown 
-                    id="group_id" 
-                    value={watch('group_id')} 
-                    options={groupOptions} 
-                    onChange={(e) => setValue('group_id', e.value)} 
-                    placeholder="Seleccionar grupo"
-                    className={classNames({ 'p-invalid': errors.group_id })}
+                <Controller
+                    name="group_id"
+                    control={control}
+                    rules={{ required: true }}
+                    render={({ field }) => (
+                        <Dropdown 
+                            id="group_id" 
+                            value={field.value} 
+                            options={groupOptions} 
+                            onChange={(e) => field.onChange(e.value)} 
+                            placeholder="Seleccionar grupo"
+                            className={classNames({ 'p-invalid': errors.group_id })}
+                        />
+                    )}
                 />
                 {errors.group_id && <small className="p-error">El grupo es requerido.</small>}
             </div>

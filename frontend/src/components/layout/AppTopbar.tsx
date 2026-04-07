@@ -44,6 +44,14 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
                         <span>Configuración</span>
                     </button>
                 </Link>
+                <button type="button" className="p-link layout-topbar-button" onClick={() => {
+                    document.cookie = 'token=; Max-Age=0; path=/; SameSite=Strict';
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                }}>
+                    <i className="pi pi-sign-out"></i>
+                    <span>Cerrar Sesión</span>
+                </button>
             </div>
         </div>
     );

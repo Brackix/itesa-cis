@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Button } from 'primereact/button';
+import { Toast } from 'primereact/toast';
 import { InputText } from 'primereact/inputtext';
 import { InputNumber } from 'primereact/inputnumber';
 import { Dropdown } from 'primereact/dropdown';
@@ -30,6 +31,8 @@ export const StudentForm = ({ initialData, onHide }: StudentFormProps) => {
         }
     });
 
+    const toast = useRef<Toast>(null);
+
     const onSubmit = async (data: CreateStudentInput) => {
         try {
             const cleanData = {
@@ -44,12 +47,18 @@ export const StudentForm = ({ initialData, onHide }: StudentFormProps) => {
                 await addStudent(cleanData);
             }
             onHide();
-        } catch (error) {
-            console.error("Failed to submit student", error);
+        } catch (error: any) {
+            if (error.message === 'STUDENT_ALREADY_EXISTS_IN_SECTION') {
+                toast.current?.show({ severity: 'error', summary: 'Estudiante Duplicado', detail: `El número #${data.list_number} ya fue asignado en la Sección ${data.section}.`, life: 5000 });
+            } else {
+                toast.current?.show({ severity: 'error', summary: 'Error de Guardado', detail: 'No se pudo guardar el estudiante. Intente de nuevo.', life: 4000 });
+            }
         }
     };
 
     return (
+        <React.Fragment>
+        <Toast ref={toast} />
         <form onSubmit={handleSubmit(onSubmit)} className="p-fluid">
             <div className="field">
                 <label htmlFor="list_number" className="font-bold">No. Lista</label>
@@ -146,5 +155,6 @@ export const StudentForm = ({ initialData, onHide }: StudentFormProps) => {
                 <Button label="Guardar" icon="pi pi-check" type="submit" loading={loading} />
             </div>
         </form>
+        </React.Fragment>
     );
 };
