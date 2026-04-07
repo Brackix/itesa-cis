@@ -214,22 +214,52 @@ Eliminar (cascade evaluaciones).
 
 ### GET /projects/:id/matrix
 
-Devuelve matriz de evaluación:
-
+Devuelve la matriz de evaluación del proyecto, agrupada por fase.
 ```json
 {
   "project": {},
   "group": {},
-  "matrix": [
-    {
-      "criterion": "string",
-      "preparation": {},
-      "fair": {}
-    }
-  ]
+  "matrix": {
+    "preparation": [
+      {
+        "criterion": "string",
+        "evaluation": {
+          "id": "uuid",
+          "status": "evaluation_phase",
+          "start_date": "datetime | null",
+          "end_date": "datetime | null",
+          "notes": "string | null"
+        }
+      }
+    ],
+    "fair": [
+      {
+        "criterion": "string",
+        "evaluation": {
+          "id": "uuid",
+          "status": "evaluation_phase",
+          "start_date": "datetime | null",
+          "end_date": "datetime | null",
+          "notes": "string | null"
+        }
+      }
+    ]
+  }
 }
 ```
 
+
+**Reglas:**
+
+* Cada criterio pertenece a una sola fase (`preparation` o `fair`).
+* Cada criterio tiene una única evaluación por proyecto.
+* No existe duplicidad por fase.
+* La matriz ya no es un pivot, sino una agrupación directa por fase.
+
+**Notas**
+* El campo `phase` se define en `project_criteria`, no en la evaluación.
+* Este endpoint está optimizado para renderizar vistas separadas por fase en el frontend.
+* Evita lógica adificional en el cliente para clasificación de criterios.
 ---
 
 # 📊 CRITERIA
