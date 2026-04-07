@@ -34,6 +34,7 @@ model project_criteria {
   name                          String                          @db.VarChar
   description                   String?
   project_criterion_evaluations project_criterion_evaluations[]
+  phase                         evaluation_phase                @default(preparation)
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -41,7 +42,6 @@ model project_criterion_evaluations {
   id               String                   @id @db.Uuid
   project_id       String                   @db.Uuid
   criterion_id     String                   @db.Uuid
-  phase            evaluation_phase         @default(preparation)
   start_date       DateTime?                @db.Timestamp(6)
   end_date         DateTime?                @db.Timestamp(6)
   status           project_criterion_status @default(in_progress)
