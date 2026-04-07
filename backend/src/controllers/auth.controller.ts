@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { authService } from '../services/auth.service';
 
-export const authController = {
-    async login(req: Request, res: Response) {
+export class authController {
+    static async login(req: Request, res: Response) {
         const { username, password } = req.body;
         if (!username || !password)
             return res.status(400).json({ error: "Usuario y contraseña son requeridos." });
@@ -16,9 +16,9 @@ export const authController = {
             }
             return res.status(500).json({ error: "Error interno del servidor." });
         }
-    },
+    }
 
-    async me(req: Request, res: Response) {
+    static async me(req: Request, res: Response) {
         const user = await authService.me(req.user!.sub);
 
         if (!user) {

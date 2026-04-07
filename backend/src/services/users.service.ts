@@ -13,42 +13,42 @@ const safeSelect = {
     role: true,
 } as const;
 
-export const usersService = {
-    async findAll() {
+export class usersService {
+    static async findAll() {
         return prisma.users.findMany({ select: safeSelect });
-    },
+    }
 
-    async findById(id: string) {
+    static async findById(id: string) {
         return prisma.users.findUnique({ where: { id }, select: safeSelect });
-    },
+    }
 
-    async create(data: userCreateModel) {
+    static async create(data: userCreateModel) {
         const password_hash = await bcrypt.hash(data.password, COST_FACTOR);
         return prisma.users.create({
             data: { id: CryptoUtil.generateUUID(), username: data.username, password_hash, role: data.role },
             select: safeSelect,
         });
-    },
+    }
 
-    async update(id: string, data: userUpdateModel) {
+    static async update(id: string, data: userUpdateModel) {
         const updateData: any = {};
         if (data.username) updateData.username = data.username;
         if (data.role) updateData.role = data.role;
         if (data.password) updateData.password_hash = await bcrypt.hash(data.password, COST_FACTOR);
 
         return prisma.users.update({ where: { id }, data: updateData, select: safeSelect })
-    },
+    }
 
-    async delete(id: string) {
+    static async delete(id: string) {
         return prisma.users.delete({ where: { id }, select: safeSelect });
-    },
+    }
 
-    async isBrackix(id: string) {
+    static async isBrackix(id: string) {
         const user = await prisma.users.findUnique({ where: { id }, select: { role: true } });
         return user?.role === user_roles.brackix;
-    },
+    }
 
-    async countBrackix() {
+    static async countBrackix() {
         return prisma.users.count({ where: { role: user_roles.brackix } });
-    },
+    }
 }

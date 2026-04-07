@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authController } from '../controllers/auth.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { asyncHandler } from '../middlewares/asyncHandler.middleware';
+import { loginLimiter } from '../middlewares/loginLimiter';
 
 const router = Router();
 
@@ -42,7 +43,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', asyncHandler(authController.login));
+router.post('/login', loginLimiter, asyncHandler(authController.login));
 
 /**
  * @swagger
