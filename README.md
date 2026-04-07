@@ -64,5 +64,4 @@ npm run dev
 
 ## Autor
 - **Brackix** - *Desarrollo Inicial*
-- lo commit de hoy
 
