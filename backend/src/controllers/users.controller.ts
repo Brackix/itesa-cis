@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { usersService } from '../services/users.service';
 import { user_roles } from '@prisma/client'
-import { userCreateModel, userUpdateModel } from '../models/user.models';
+import { userCreateModel, userUpdateModel } from '../models/users.models';
 
 export const usersController = {
     async findAll(req: Request, res: Response) {

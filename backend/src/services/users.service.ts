@@ -3,7 +3,7 @@ import prisma from "../config/prisma.config";
 import { user_roles } from '@prisma/client';
 import { CryptoUtil } from "../utils/crypto.util";
 
-import { userCreateModel, userUpdateModel } from "../models/user.models";
+import { userCreateModel, userUpdateModel } from "../models/users.models";
 
 const COST_FACTOR: number = parseInt(process.env.BYCRIPT_COST_FACTOR || '12');
 
