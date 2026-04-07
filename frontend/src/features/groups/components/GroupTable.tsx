@@ -11,8 +11,11 @@ import { useGroupStore } from '../hooks/useGroups';
 import { Group } from '../types/group.types';
 import { GroupForm } from './GroupForm';
 
+import { useStudentStore } from '../../students/hooks/useStudents';
+
 export const GroupTable = () => {
     const { groups, loading, fetchGroups, deleteGroup } = useGroupStore();
+    const { fetchStudents } = useStudentStore();
     const [groupDialog, setGroupDialog] = useState(false);
     const [deleteGroupDialog, setDeleteGroupDialog] = useState(false);
     const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -20,7 +23,8 @@ export const GroupTable = () => {
 
     useEffect(() => {
         fetchGroups();
-    }, [fetchGroups]);
+        fetchStudents();
+    }, [fetchGroups, fetchStudents]);
 
     const openNew = () => {
         setSelectedGroup(null);

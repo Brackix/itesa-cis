@@ -11,33 +11,61 @@ interface GroupStore {
     deleteGroup: (id: string) => void;
 }
 
-const mockGroups: Group[] = [
-    { id: '1', group_name: 'Grupo A' },
-];
+import { api } from '@/src/services/api';
 
 export const useGroupStore = create<GroupStore>((set) => ({
-    groups: mockGroups,
+    groups: [],
     loading: false,
     error: null,
-    fetchGroups: () => {
-        set({ loading: true });
-        setTimeout(() => set({ groups: mockGroups, loading: false }), 500);
+    fetchGroups: async () => {
+        set({ loading: true, error: null });
+        try {
+            const res = await api.get('/groups');
+            set({ groups: res.data.data, loading: false });
+        } catch (error: any) {
+            set({ error: error.response?.data?.error || error.message, loading: false });
+        }
     },
-    addGroup: (data) => {
-        const newGroup: Group = {
-            ...data,
-            id: Math.random().toString(36).substr(2, 9),
-        };
-        set((state) => ({ groups: [...state.groups, newGroup] }));
+    addGroup: async (data) => {
+        set({ loading: true, error: null });
+        try {
+            // Group route requires { name }
+            const res = await api.post('/groups', { name: data.group_name });
+            const newGroup = res.data.data;
+            
+            if (data.students && data.students.length > 0) {
+                await api.post(`/groups/${newGroup.id}/students`, {
+                    students: data.students
+                });
+            }
+            
+            set((state) => ({ groups: [...state.groups, newGroup], loading: false }));
+        } catch (error: any) {
+            set({ error: error.response?.data?.error || error.message, loading: false });
+        }
     },
-    updateGroup: (group) => {
-        set((state) => ({
-            groups: state.groups.map((g) => (g.id === group.id ? group : g))
-        }));
+    updateGroup: async (group) => {
+        set({ loading: true, error: null });
+        try {
+            const res = await api.put(`/groups/${group.id}`, { name: group.group_name });
+            set((state) => ({
+                groups: state.groups.map((g) => (g.id === group.id ? res.data.data : g)),
+                loading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.response?.data?.error || error.message, loading: false });
+        }
     },
-    deleteGroup: (id) => {
-        set((state) => ({
-            groups: state.groups.filter((g) => g.id !== id)
-        }));
+    deleteGroup: async (id) => {
+        set({ loading: true, error: null });
+        try {
+            await api.delete(`/groups/${id}`);
+            set((state) => ({
+                groups: state.groups.filter((g) => g.id !== id),
+                loading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.response?.data?.error || error.message, loading: false });
+        }
     }
 }));

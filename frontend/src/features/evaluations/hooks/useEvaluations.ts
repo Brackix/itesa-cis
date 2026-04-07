@@ -11,8 +11,7 @@ interface EvaluationStore {
     updateEvaluation: (evaluation: ProjectCriterionEvaluation) => void;
 }
 
-import axios from 'axios';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+import { api } from '@/src/services/api';
 
 export const useEvaluationStore = create<EvaluationStore>((set) => ({
     evaluations: [],
@@ -22,7 +21,7 @@ export const useEvaluationStore = create<EvaluationStore>((set) => ({
     fetchEvaluations: async () => {
         set({ loading: true, error: null });
         try {
-            const res = await axios.get(`${API_URL}/evaluations`);
+            const res = await api.get('/evaluations');
             set({ evaluations: res.data.data, loading: false });
         } catch (error: any) {
             set({ error: error.message, loading: false });
@@ -31,7 +30,7 @@ export const useEvaluationStore = create<EvaluationStore>((set) => ({
     fetchCriteria: async () => {
         set({ loading: true, error: null });
         try {
-            const res = await axios.get(`${API_URL}/project_criteria`);
+            const res = await api.get('/project_criteria');
             set({ criteria: res.data.data, loading: false });
         } catch (error: any) {
             set({ error: error.message, loading: false });
@@ -43,7 +42,7 @@ export const useEvaluationStore = create<EvaluationStore>((set) => ({
                 status: evaluation.status,
                 notes: evaluation.notes
             };
-            const res = await axios.put(`${API_URL}/evaluations/${evaluation.id}`, updatePayload);
+            const res = await api.put(`/evaluations/${evaluation.id}`, updatePayload);
             set((state) => ({
                 evaluations: state.evaluations.map((e) => (e.id === evaluation.id ? res.data.data : e))
             }));

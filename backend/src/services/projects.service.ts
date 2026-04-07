@@ -7,7 +7,11 @@ import { AppError } from "../utils/appError.util"
 
 export class ProjectService {
     static async findAll() {
-        return await prisma.projects.findMany();
+        return await prisma.projects.findMany({
+            include: {
+                groups: true
+            }
+        });
     }
 
     static async findById(id: string) {

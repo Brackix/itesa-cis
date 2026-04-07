@@ -75,7 +75,16 @@ router.get('/:id', asyncHandler(usersController.findById));
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UserCreate'
+ *             type: object
+ *             required: [username, password, role]
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [brackix, user]
  *     responses:
  *       201:
  *         description: User created
@@ -113,7 +122,15 @@ router.post('/', asyncHandler(usersController.create));
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UserUpdate'
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [brackix, user]
  *     responses:
  *       200:
  *         description: User updated

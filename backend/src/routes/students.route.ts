@@ -1,9 +1,11 @@
 import { Router } from "express";
+import multer from "multer";
 import { StudentController } from "../controllers/students.controller";
 import { authenticate } from "../middlewares/auth.middleware"
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.use(authenticate);
 
@@ -76,6 +78,51 @@ router.get("/", asyncHandler(StudentController.getStudents));
 
 /**
  * @swagger
+ * /students/upload/preview:
+ *   post:
+ *     summary: Parse Excel file statelessly and return structure preview mapping
+ *     tags: [Students]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Succesfully extracted student JSON arrays statelessly.
+ */
+router.post("/upload/preview", upload.single("file"), asyncHandler(StudentController.uploadExcelPreview));
+
+/**
+ * @swagger
+ * /students/upload/confirm:
+ *   post:
+ *     summary: Bulk create students officially by sending explicitly approved JSON arrays
+ *     tags: [Students]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               students:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Student'
+ *     responses:
+ *       200:
+ *         description: Successfully bulk inserted verified payload array
+ */
+router.post("/upload/confirm", asyncHandler(StudentController.confirmExcelUpload));
+
+/**
+ * @swagger
  * /students:
  *   post:
  *     summary: Create a new student
@@ -89,14 +136,22 @@ router.get("/", asyncHandler(StudentController.getStudents));
  *     responses:
  *       201:
  *         description: The student was successfully created
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Student'
  *       400:
  *         description: Missing required fields
  */
 router.post("/", asyncHandler(StudentController.createStudent));
+
+/**
+ * @swagger
+ * /students/template:
+ *   get:
+ *     summary: Download blank exact Excel template format
+ *     tags: [Students]
+ *     responses:
+ *       200:
+ *         description: Generates a blank XLSX formatted template buffer output explicitly.
+ */
+router.get("/template", asyncHandler(StudentController.downloadTemplate));
 
 /**
  * @swagger

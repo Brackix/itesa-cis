@@ -5,8 +5,6 @@ import path from 'path';
 const apiRouter = Router();
 
 function loadRoutes(dirPath: string, prefix = '') {
-    if (!fs.existsSync(dirPath)) return;
-
     fs.readdirSync(dirPath).forEach((file) => {
         const fullPath = path.join(dirPath, file);
 
