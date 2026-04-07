@@ -157,6 +157,17 @@ El middleware `verifyToken` valida el JWT en cada ruta protegida. `requireRole('
 
 ---
 
+## Seguridad y Rate Limiting
+
+### Protección de Brute Force (Login)
+El endpoint de login (`/auth/login`) cuenta con un buffer de seguridad que permite un máximo de **5 intentos cada 15 minutos**.
+
+### Bloqueo por IP
+Para garantizar la máxima seguridad, el bloqueo se aplica a la **Dirección IP Pública**. Esto evita que un atacante intente rotar identificadores de dispositivo falsos para saltarse el límite.
+- **Nota**: Si varios usuarios comparten la misma red (ej. una escuela), el bloqueo podría afectar a todos si se agotan los intentos desde esa red.
+
+---
+
 ## Roles y Permisos
 
 | Recurso | `user` | `brackix` |

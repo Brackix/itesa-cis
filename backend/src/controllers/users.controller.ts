@@ -3,20 +3,20 @@ import { usersService } from '../services/users.service';
 import { user_roles } from '@prisma/client'
 import { userCreateModel, userUpdateModel } from '../models/users.models';
 
-export const usersController = {
-    async findAll(req: Request, res: Response) {
+export class usersController {
+    static async findAll(req: Request, res: Response) {
         const users = await usersService.findAll();
         return res.json({ users });
-    },
+    }
 
-    async findById(req: Request, res: Response) {
+    static async findById(req: Request, res: Response) {
         const id = req.params.id as string;
         const user = await usersService.findById(id);
         if (!user) return res.status(404).json({ error: 'USER_NOT_FOUND' });
         return res.json({ user });
-    },
+    }
 
-    async create(req: Request, res: Response) {
+    static async create(req: Request, res: Response) {
         const data = req.body as userCreateModel;
         if (!data.username || !data.password || !data.role) {
             return res.status(400).json({ error: 'USERNAME_PASSWORD_ROLE_REQUIRED' });
@@ -34,9 +34,9 @@ export const usersController = {
             }
             return res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
         }
-    },
+    }
 
-    async update(req: Request, res: Response) {
+    static async update(req: Request, res: Response) {
         const id = req.params.id as string;
         const data = req.body as userUpdateModel;
 
@@ -52,9 +52,9 @@ export const usersController = {
             if (err.code === 'P2002') return res.status(409).json({ error: 'USERNAME_ALREADY_EXISTS' });
             return res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
         }
-    },
+    }
 
-    async delete(req: Request, res: Response) {
+    static async delete(req: Request, res: Response) {
         const id = req.params.id as string;
 
         const target = await usersService.findById(id);
