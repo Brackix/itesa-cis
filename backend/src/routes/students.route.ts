@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { StudentController } from "../controllers/students.controller";
 import { authenticate } from "../middlewares/auth.middleware"
+import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 
 const router = Router();
 
@@ -71,7 +72,7 @@ router.use(authenticate);
  *               items:
  *                 $ref: '#/components/schemas/Student'
  */
-router.get("/", StudentController.getStudents);
+router.get("/", asyncHandler(StudentController.getStudents));
 
 /**
  * @swagger
@@ -95,7 +96,7 @@ router.get("/", StudentController.getStudents);
  *       400:
  *         description: Missing required fields
  */
-router.post("/", StudentController.createStudent);
+router.post("/", asyncHandler(StudentController.createStudent));
 
 /**
  * @swagger
@@ -120,7 +121,7 @@ router.post("/", StudentController.createStudent);
  *       404:
  *         description: The student was not found
  */
-router.get("/:id", StudentController.getStudentById);
+router.get("/:id", asyncHandler(StudentController.getStudentById));
 
 /**
  * @swagger
@@ -147,7 +148,7 @@ router.get("/:id", StudentController.getStudentById);
  *       404:
  *         description: The student was not found
  */
-router.put("/:id", StudentController.updateStudent);
+router.put("/:id", asyncHandler(StudentController.updateStudent));
 
 /**
  * @swagger
@@ -168,7 +169,7 @@ router.put("/:id", StudentController.updateStudent);
  *       404:
  *         description: The student was not found
  */
-router.delete("/:id", StudentController.deleteStudent);
+router.delete("/:id", asyncHandler(StudentController.deleteStudent));
 
 /**
  * @swagger
@@ -189,6 +190,6 @@ router.delete("/:id", StudentController.deleteStudent);
  *       404:
  *         description: The student was not found
  */
-router.get("/:id/details", StudentController.getStudentDetails);
+router.get("/:id/details", asyncHandler(StudentController.getStudentDetails));
 
 export default router;
