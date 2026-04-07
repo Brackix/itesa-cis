@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { ProjectCriteriaController } from "../controllers/project_criteria.controller";
+import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 
 const router = Router();
 
-router.get("/", ProjectCriteriaController.findAll);
-router.get("/:id", ProjectCriteriaController.findById);
-router.post("/", ProjectCriteriaController.create);
-router.put("/:id", ProjectCriteriaController.update);
-router.delete("/:id", ProjectCriteriaController.delete);
+router.get("/", asyncHandler(ProjectCriteriaController.findAll));
+router.get("/:id", asyncHandler(ProjectCriteriaController.findById));
+router.post("/", asyncHandler(ProjectCriteriaController.create));
+router.put("/:id", asyncHandler(ProjectCriteriaController.update));
+router.delete("/:id", asyncHandler(ProjectCriteriaController.delete));
 
 export default router;

@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { EvaluationsController } from "../controllers/evaluations.controller";
+import { asyncHandler } from "../middlewares/asyncHandler.middleware";
+
 
 const router = Router();
 
-router.get("/", EvaluationsController.findAll);
-router.get("/:id", EvaluationsController.findById);
-router.put("/:id", EvaluationsController.update);
+router.get("/", asyncHandler(EvaluationsController.findAll));
+router.get("/:id", asyncHandler(EvaluationsController.findById));
+router.put("/:id", asyncHandler(EvaluationsController.update));
 
 export default router;
