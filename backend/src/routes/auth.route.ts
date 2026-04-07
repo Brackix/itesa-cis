@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authController } from '../controllers/auth.controller';
 import { authenticate } from '../middlewares/auth.middleware';
+import { asyncHandler } from '../middlewares/asyncHandler.middleware';
 
 const router = Router();
 
@@ -41,7 +42,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', authController.login);
+router.post('/login', asyncHandler(authController.login));
 
 /**
  * @swagger
@@ -68,6 +69,7 @@ router.post('/login', authController.login);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/me', authenticate, authController.me);
+router.get('/me', authenticate, asyncHandler(authController.me));
+
 
 export default router;

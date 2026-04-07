@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { usersController } from '../controllers/users.controller';
 import { authenticate, requireAdmin } from '../middlewares/auth.middleware';
+import { asyncHandler } from '../middlewares/asyncHandler.middleware';
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.use(authenticate, requireAdmin);
  *       403:
  *         description: Access denied
  */
-router.get('/', usersController.findAll);
+router.get('/', asyncHandler(usersController.findAll));
 
 /**
  * @swagger
@@ -59,7 +60,7 @@ router.get('/', usersController.findAll);
  *       404:
  *         description: User not found
  */
-router.get('/:id', usersController.findById);
+router.get('/:id', asyncHandler(usersController.findById));
 
 /**
  * @swagger
@@ -90,7 +91,7 @@ router.get('/:id', usersController.findById);
  *       409:
  *         description: Username already exists
  */
-router.post('/', usersController.create);
+router.post('/', asyncHandler(usersController.create));
 
 /**
  * @swagger
@@ -128,7 +129,7 @@ router.post('/', usersController.create);
  *       404:
  *         description: User not found
  */
-router.put('/:id', usersController.update);
+router.put('/:id', asyncHandler(usersController.update));
 
 /**
  * @swagger
@@ -153,6 +154,6 @@ router.put('/:id', usersController.update);
  *       404:
  *         description: User not found
  */
-router.delete('/:id', usersController.delete);
+router.delete('/:id', asyncHandler(usersController.delete));
 
 export default router;
