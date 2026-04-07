@@ -33,7 +33,7 @@ export class DashboardService {
         const problematicEvals = await prisma.project_criterion_evaluations.findMany({
             where: {
                 status: {
-                    in: ['late', 'not_achieved']
+                    in: [project_criterion_status.late, project_criterion_status.not_achieved]
                 }
             },
             include: {
