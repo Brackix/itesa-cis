@@ -1,6 +1,6 @@
 import prisma from "../config/prisma.config";
 import { CryptoUtil } from "../utils/crypto.util";
-import { Prisma, evaluation_phase } from "@prisma/client";
+import { evaluation_phase } from "@prisma/client";
 import { CreateProject, UpdateProject, ProjectMatrix, MatrixItem } from "../models/projects.model"
 import { AppError } from "../utils/appError.util"
 
