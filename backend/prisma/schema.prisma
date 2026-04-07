@@ -23,8 +23,8 @@ model groups_students {
   group_id       String   @db.Uuid
   student_id     String   @unique @db.Uuid
   is_coordinator Boolean? @default(false)
-  groups         groups   @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  students       students @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  groups         groups   @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  students       students @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([group_id, student_id], map: "groups_students_group_id_student_id_idx")
 }
@@ -46,8 +46,8 @@ model project_criterion_evaluations {
   end_date         DateTime?                @db.Timestamp(6)
   status           project_criterion_status @default(in_progress)
   notes            String?
-  project_criteria project_criteria         @relation(fields: [criterion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  projects         projects                 @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project_criteria project_criteria         @relation(fields: [criterion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  projects         projects                 @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -57,7 +57,7 @@ model projects {
   description                   String?
   group_id                      String                          @db.Uuid
   project_criterion_evaluations project_criterion_evaluations[]
-  groups                        groups                          @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  groups                        groups                          @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model students {
