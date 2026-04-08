@@ -64,4 +64,5 @@ npm run dev
 
 ## Autor
 - **Brackix** - *Desarrollo Inicial*
+- hay que ir tirando lo reale comi
 
