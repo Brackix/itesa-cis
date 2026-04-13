@@ -64,5 +64,5 @@ npm run dev
 
 ## Autor
 - **Brackix** - *Desarrollo Inicial*
-- comi pa la racha
+- comi pa la racha sii commit
 
