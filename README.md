@@ -64,5 +64,5 @@ npm run dev
 
 ## Autor
 - **Brackix** - *Desarrollo Inicial*
-- a recuperar la racha de ayer
+- a recuperar la racha de hoy
 
