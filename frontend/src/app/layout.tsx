@@ -16,7 +16,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             <head>
                 <link id="theme-css" href={`/themes/lara-light-indigo/theme.css`} rel="stylesheet"></link>
             </head>
-            <body>
+            <body suppressHydrationWarning={true}>
                 <PrimeReactProvider>
                     <LayoutProvider>{children}</LayoutProvider>
                 </PrimeReactProvider>
