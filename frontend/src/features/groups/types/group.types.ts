@@ -10,4 +10,7 @@ export interface GroupStudent {
     is_coordinator: boolean;
 }
 
-export type CreateGroupInput = Omit<Group, 'id'>;
+export interface CreateGroupInput {
+    group_name: string;
+    students?: { id: string; isCoordinator: boolean }[];
+}

@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:17
+    container_name: itesa-cis-db
+    env_file:
+      - backend/.env
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: itesa-cis-backend
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    env_file:
+      - backend/.env
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public"
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: itesa-cis-frontend
+    ports:
+      - "3001:3000"
+    env_file:
+      - frontend/.env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${PORT:-3000}/api/v1
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

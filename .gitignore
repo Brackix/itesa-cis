@@ -1,2 +1,16 @@
+# Dependencias
 node_modules/
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Compilación y Generados
 dist/
+generated/
+/backend/generated/
+
+# IDEs  
+.vscode/
+.DS_Store

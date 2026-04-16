@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model groups {
+  id              String            @id @db.Uuid
+  group_name      String            @db.VarChar
+  group_full      Boolean           @default(false)
+  groups_students groups_students[]
+  projects        projects[]
+
+  @@index([group_name])
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model groups_students {
+  id             String   @id @db.Uuid
+  group_id       String   @db.Uuid
+  student_id     String   @unique @db.Uuid
+  is_coordinator Boolean? @default(false)
+  groups         groups   @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  students       students @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([group_id, student_id], map: "groups_students_group_id_student_id_idx")
+}
+
+model project_criteria {
+  id                            String                          @id @db.Uuid
+  name                          String                          @db.VarChar
+  description                   String?
+  project_criterion_evaluations project_criterion_evaluations[]
+  phase                         evaluation_phase                @default(preparation)
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model project_criterion_evaluations {
+  id               String                   @id @db.Uuid
+  project_id       String                   @db.Uuid
+  criterion_id     String                   @db.Uuid
+  start_date       DateTime?                @db.Timestamp(6)
+  end_date         DateTime?                @db.Timestamp(6)
+  status           project_criterion_status @default(in_progress)
+  notes            String?
+  project_criteria project_criteria         @relation(fields: [criterion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  projects         projects                 @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model projects {
+  id                            String                          @id @db.Uuid
+  name                          String                          @db.VarChar
+  description                   String?
+  group_id                      String                          @db.Uuid
+  project_criterion_evaluations project_criterion_evaluations[]
+  groups                        groups                          @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model students {
+  id              String            @id @db.Uuid
+  list_number     Int
+  name            String            @db.VarChar
+  last_name       String            @db.VarChar
+  section         sections
+  image_url       String?
+  alt_text        String?
+  groups_students groups_students[]
+
+  @@unique([list_number, section])
+  @@index([list_number])
+  @@index([name, last_name])
+}
+
+model users {
+  id            String     @id @db.Uuid
+  username      String     @unique @db.VarChar
+  password_hash String
+  role          user_roles @default(user)
+}
+
+enum evaluation_phase {
+  preparation
+  fair
+}
+
+enum project_criterion_status {
+  in_progress
+  achieved
+  not_achieved
+  late
+}
+
+enum user_roles {
+  brackix
+  user
+}
+
+enum sections {
+  A
+  B
+  C
+  D
+  E
+  F
+  G
+}

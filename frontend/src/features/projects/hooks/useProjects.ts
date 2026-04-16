@@ -11,33 +11,56 @@ interface ProjectStore {
     deleteProject: (id: string) => void;
 }
 
-const mockProjects: Project[] = [
-    { id: '1', name: 'ITESA CIS Dashboard', description: 'Desarrollo de un dashboard con PrimeReact y Next.js', group_id: '1' },
-];
+import { ProjectService } from '../services/project.service';
 
 export const useProjectStore = create<ProjectStore>((set) => ({
-    projects: mockProjects,
+    projects: [],
     loading: false,
     error: null,
-    fetchProjects: () => {
-        set({ loading: true });
-        setTimeout(() => set({ projects: mockProjects, loading: false }), 500);
+    fetchProjects: async () => {
+        set({ loading: true, error: null });
+        try {
+            const data = await ProjectService.getProjects();
+            set({ projects: data, loading: false });
+        } catch (error: any) {
+            set({ error: error.response?.data?.error || error.message, loading: false });
+        }
     },
-    addProject: (data) => {
-        const newProject: Project = {
-            ...data,
-            id: Math.random().toString(36).substr(2, 9),
-        };
-        set((state) => ({ projects: [...state.projects, newProject] }));
+    addProject: async (data) => {
+        set({ loading: true, error: null });
+        try {
+            const result = await ProjectService.createProject(data);
+            set((state) => ({ projects: [...state.projects, result], loading: false }));
+        } catch (error: any) {
+            set({ error: error.response?.data?.error || error.message, loading: false });
+        }
     },
-    updateProject: (project) => {
-        set((state) => ({
-            projects: state.projects.map((p) => (p.id === project.id ? project : p))
-        }));
+    updateProject: async (project) => {
+        set({ loading: true, error: null });
+        try {
+            const result = await ProjectService.updateProject(project.id, {
+                name: project.name,
+                description: project.description,
+                group_id: project.group_id
+            });
+            set((state) => ({
+                projects: state.projects.map((p) => (p.id === project.id ? { ...p, ...result } : p)),
+                loading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.response?.data?.error || error.message, loading: false });
+        }
     },
-    deleteProject: (id) => {
-        set((state) => ({
-            projects: state.projects.filter((p) => p.id !== id)
-        }));
+    deleteProject: async (id) => {
+        set({ loading: true, error: null });
+        try {
+            await ProjectService.deleteProject(id);
+            set((state) => ({
+                projects: state.projects.filter((p) => p.id !== id),
+                loading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.response?.data?.error || error.message, loading: false });
+        }
     }
 }));
