@@ -62,10 +62,51 @@ export class DashboardService {
             }
         });
 
+        // 1. Estudiantes recientes
+        const recentStudentsRows = await prisma.students.findMany({
+            take: 5,
+            orderBy: { name: 'asc' }, // No created_at, sorting by name or list
+            include: {
+                groups_students: {
+                    include: { groups: true }
+                }
+            }
+        });
+
+        const recentStudents = recentStudentsRows.map(s => ({
+            id: s.id.substring(0, 8),
+            name: `${s.name} ${s.last_name}`,
+            group: s.groups_students?.[0]?.groups?.group_name || 'Sin grupo',
+            status: 'Activo'
+        }));
+
+        // 2. Grupos por ocupación
+        const groupsWithCount = await prisma.groups.findMany({
+            include: {
+                _count: { select: { groups_students: true } }
+            },
+            take: 5
+        });
+
+        const colors = ['orange', 'cyan', 'pink', 'green', 'purple'];
+        const topGroups = groupsWithCount.map((g, i) => {
+            // max capacity example: 10
+            const maxCap = 10;
+            return {
+                name: g.group_name,
+                pct: Math.min(100, Math.round((g._count.groups_students / maxCap) * 100)),
+                color: colors[i % colors.length]
+            };
+        });
+
         return {
             totalStudents,
             totalGroups,
-            totalProjects,
+            activeGroups: totalGroups,
+            inscriptions: 52, // Mock (no created_at in schema)
+            attendanceAvg: '87%', // Mock (no attendance in schema)
+            recentStudents,
+            topGroups,
             metrics,
             problematicEvals,
             recentActivity
